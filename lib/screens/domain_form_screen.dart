@@ -1,0 +1,195 @@
+import 'package:flutter/material.dart';
+import '../models/domain.dart';
+import '../services/storage_service.dart';
+import '../services/alarm_service.dart';
+
+class DomainFormScreen extends StatefulWidget {
+  final Domain? domain;
+
+  const DomainFormScreen({super.key, this.domain});
+
+  @override
+  State<DomainFormScreen> createState() => _DomainFormScreenState();
+}
+
+class _DomainFormScreenState extends State<DomainFormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _urlController;
+  Duration _selectedInterval = const Duration(hours: 1);
+
+  final List<Duration> _intervalOptions = [
+    const Duration(minutes: 15),
+    const Duration(hours: 1),
+    const Duration(hours: 6),
+    const Duration(days: 1),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _urlController = TextEditingController(text: widget.domain?.url ?? '');
+    if (widget.domain != null) {
+      _selectedInterval = widget.domain!.checkInterval;
+    }
+  }
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    super.dispose();
+  }
+
+  String _formatDuration(Duration duration) {
+    if (duration.inMinutes < 60) {
+      return '${duration.inMinutes} minutes';
+    } else if (duration.inHours < 24) {
+      return '${duration.inHours} hour${duration.inHours > 1 ? 's' : ''}';
+    } else {
+      return '${duration.inDays} day${duration.inDays > 1 ? 's' : ''}';
+    }
+  }
+
+  Future<void> _saveDomain() async {
+    if (_formKey.currentState!.validate()) {
+      final domain = Domain(
+        id: widget.domain?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        url: _urlController.text.trim(),
+        checkInterval: _selectedInterval,
+        lastChecked: widget.domain?.lastChecked,
+        expiryDate: widget.domain?.expiryDate,
+        alarmId: widget.domain?.alarmId ?? StorageService.generateAlarmId(),
+      );
+
+      if (widget.domain == null) {
+        await StorageService.addDomain(domain);
+      } else {
+        await StorageService.updateDomain(domain);
+      }
+
+      // Schedule alarm with deterministic alarm ID
+      await AlarmService.scheduleAlarm(
+        domain.alarmId,
+        _selectedInterval,
+        domain.url,
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.domain == null ? 'Add Domain' : 'Edit Domain'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            TextFormField(
+              controller: _urlController,
+              decoration: const InputDecoration(
+                labelText: 'Domain URL',
+                hintText: 'example.com',
+                prefixIcon: Icon(Icons.domain),
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a domain URL';
+                }
+                if (!RegExp(r'^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$').hasMatch(value)) {
+                  return 'Please enter a valid domain';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Check Interval',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            ..._intervalOptions.map((interval) {
+              return RadioListTile<Duration>(
+                title: Text(_formatDuration(interval)),
+                value: interval,
+                groupValue: _selectedInterval,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedInterval = value!;
+                  });
+                },
+              );
+            }),
+            ListTile(
+              title: const Text('Custom'),
+              trailing: Text(
+                _intervalOptions.contains(_selectedInterval)
+                    ? ''
+                    : _formatDuration(_selectedInterval),
+              ),
+              onTap: () {
+                _showCustomIntervalDialog();
+              },
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _saveDomain,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: Text(
+                widget.domain == null ? 'Add Domain' : 'Update Domain',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCustomIntervalDialog() {
+    int hours = _selectedInterval.inHours;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Custom Interval'),
+          content: TextField(
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Hours',
+              hintText: 'Enter number of hours',
+            ),
+            onChanged: (value) {
+              hours = int.tryParse(value) ?? 1;
+            },
+            controller: TextEditingController(text: hours.toString()),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _selectedInterval = Duration(hours: hours);
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
