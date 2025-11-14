@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import '../models/domain.dart';
 import '../services/storage_service.dart';
@@ -88,55 +89,44 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          // Install buttons section
+          // Install button section
           Container(
             padding: const EdgeInsets.all(16.0),
             color: Theme.of(context).colorScheme.primaryContainer,
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          // Opens ntfy.sh app on Play Store for notification handling
-                          // URL: https://play.google.com/store/apps/details?id=io.heckel.ntfy
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    // Opens ntfy.sh app on Play Store for notification handling
+                    final playStoreUrl = Uri.parse('https://play.google.com/store/apps/details?id=io.heckel.ntfy');
+                    try {
+                      if (await canLaunchUrl(playStoreUrl)) {
+                        await launchUrl(playStoreUrl, mode: LaunchMode.externalApplication);
+                      } else {
+                        if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Opening Play Store for ntfy.sh app...'),
+                              content: Text('Could not open Play Store'),
                             ),
                           );
-                        },
-                        icon: const Icon(Icons.notifications),
-                        label: const Text('Install Ntfy'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          final version = _getAppVersion();
-                          final apkUrl =
-                              'https://github.com/md-riaz/Flutter-DomainPulse/releases/download/v$version/DomainPulse-v$version.apk';
-                          // This would open the URL in a real app
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Download: $apkUrl'),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.download),
-                        label: const Text('GitHub APK'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
-                  ],
+                        }
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error opening Play Store: $e'),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.notifications),
+                  label: const Text('Install Ntfy from Play Store'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -176,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           final domain = _domains[index];
                           final isExpiringSoon = domain.expiryDate != null &&
                               domain.expiryDate!
-                                  .isBefore(DateTime.now().add(const Duration(hours: 1)));
+                                  .isBefore(DateTime.now().add(domain.notifyBeforeExpiry));
 
                           return Card(
                             margin: const EdgeInsets.symmetric(
@@ -215,6 +205,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   Text(
                                     'Check interval: ${_formatInterval(domain.checkInterval)}',
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                  Text(
+                                    'Notify: ${_formatInterval(domain.notifyBeforeExpiry)} before expiry',
                                     style: Theme.of(context).textTheme.bodySmall,
                                   ),
                                 ],

@@ -49,15 +49,28 @@ class DomainCheckService {
       // Check if domain is expiring soon or expired
       if (expiryDate != null) {
         final now = DateTime.now();
-        final oneHourFromNow = now.add(const Duration(hours: 1));
+        final notifyThreshold = now.add(domain.notifyBeforeExpiry);
 
-        if (expiryDate.isBefore(oneHourFromNow)) {
+        if (expiryDate.isBefore(notifyThreshold)) {
           String message;
           if (expiryDate.isBefore(now)) {
-            message = 'Domain ${domain.url} has expired!';
+            final timeExpired = now.difference(expiryDate);
+            if (timeExpired.inDays > 0) {
+              message = 'Domain ${domain.url} expired ${timeExpired.inDays} day(s) ago!';
+            } else if (timeExpired.inHours > 0) {
+              message = 'Domain ${domain.url} expired ${timeExpired.inHours} hour(s) ago!';
+            } else {
+              message = 'Domain ${domain.url} has expired!';
+            }
           } else {
-            final minutesLeft = expiryDate.difference(now).inMinutes;
-            message = 'Domain ${domain.url} expires in $minutesLeft minutes!';
+            final timeLeft = expiryDate.difference(now);
+            if (timeLeft.inDays > 0) {
+              message = 'Domain ${domain.url} expires in ${timeLeft.inDays} day(s)!';
+            } else if (timeLeft.inHours > 0) {
+              message = 'Domain ${domain.url} expires in ${timeLeft.inHours} hour(s)!';
+            } else {
+              message = 'Domain ${domain.url} expires in ${timeLeft.inMinutes} minute(s)!';
+            }
           }
 
           await NotificationService.sendNotification(

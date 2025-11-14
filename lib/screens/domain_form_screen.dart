@@ -16,6 +16,7 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _urlController;
   Duration _selectedInterval = const Duration(hours: 1);
+  Duration _notifyBeforeExpiry = const Duration(hours: 1);
 
   final List<Duration> _intervalOptions = [
     const Duration(minutes: 15),
@@ -24,12 +25,23 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
     const Duration(days: 1),
   ];
 
+  final List<Duration> _notificationOptions = [
+    const Duration(minutes: 30),
+    const Duration(hours: 1),
+    const Duration(hours: 6),
+    const Duration(hours: 12),
+    const Duration(days: 1),
+    const Duration(days: 7),
+    const Duration(days: 30),
+  ];
+
   @override
   void initState() {
     super.initState();
     _urlController = TextEditingController(text: widget.domain?.url ?? '');
     if (widget.domain != null) {
       _selectedInterval = widget.domain!.checkInterval;
+      _notifyBeforeExpiry = widget.domain!.notifyBeforeExpiry;
     }
   }
 
@@ -49,6 +61,16 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
     }
   }
 
+  String _formatNotificationDuration(Duration duration) {
+    if (duration.inMinutes < 60) {
+      return '${duration.inMinutes} minutes before';
+    } else if (duration.inHours < 24) {
+      return '${duration.inHours} hour${duration.inHours > 1 ? 's' : ''} before';
+    } else {
+      return '${duration.inDays} day${duration.inDays > 1 ? 's' : ''} before';
+    }
+  }
+
   Future<void> _saveDomain() async {
     if (_formKey.currentState!.validate()) {
       final domain = Domain(
@@ -58,6 +80,7 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
         lastChecked: widget.domain?.lastChecked,
         expiryDate: widget.domain?.expiryDate,
         alarmId: widget.domain?.alarmId ?? StorageService.generateAlarmId(),
+        notifyBeforeExpiry: _notifyBeforeExpiry,
       );
 
       if (widget.domain == null) {
@@ -136,6 +159,39 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
               ),
               onTap: () {
                 _showCustomIntervalDialog();
+              },
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Notification Timing',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Receive notification when domain is about to expire:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<Duration>(
+              value: _notificationOptions.contains(_notifyBeforeExpiry)
+                  ? _notifyBeforeExpiry
+                  : _notificationOptions[1],
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.notifications_active),
+                border: OutlineInputBorder(),
+              ),
+              items: _notificationOptions.map((duration) {
+                return DropdownMenuItem(
+                  value: duration,
+                  child: Text(_formatNotificationDuration(duration)),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _notifyBeforeExpiry = value;
+                  });
+                }
               },
             ),
             const SizedBox(height: 24),

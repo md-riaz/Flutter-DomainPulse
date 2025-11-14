@@ -212,7 +212,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const ListTile(
                           leading: Icon(Icons.notifications_active),
                           title: Text('Alert Threshold'),
-                          subtitle: Text('1 hour before expiry or past expiry'),
+                          subtitle: Text('Configurable per domain (30m to 30 days before expiry)'),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ],
