@@ -10,20 +10,12 @@
 
 ### 2. Expiry Date Tracking
 
-DomainPulse supports two methods for tracking domain expiry dates:
-
-#### Manual Entry
-- Users can manually enter the expiry date when adding/editing a domain
-- Format: YYYY-MM-DD
-- Includes a date picker for easy selection
-- Ideal when you know the exact expiry date from your registrar
-
-#### Automatic Detection (Limited)
+#### Automatic Detection
 - Attempts to parse expiry information from HTTP headers
-- Preserves manually entered dates if automatic detection fails
 - Updates automatically during scheduled checks
+- Simple and hands-free approach
 
-**Note**: Due to minimal dependency requirements, full WHOIS or SSL certificate checking is not implemented. For most accurate tracking, we recommend manually entering expiry dates from your domain registrar.
+**Note**: Due to minimal dependency requirements, full WHOIS or SSL certificate checking is not implemented. The app uses HTTP headers to detect expiry information where available.
 
 ### 3. Background Monitoring
 
@@ -60,11 +52,12 @@ Alert messages include:
 
 ### 5. Installation Options
 
-The home screen includes two installation buttons:
+The home screen includes two buttons:
 
-#### Play Store Button
-- Ready for when app is published to Google Play Store
-- Currently shows a placeholder message
+#### Install Ntfy Button
+- Quick access to install the ntfy.sh app from Play Store
+- Opens the ntfy.sh app page: `https://play.google.com/store/apps/details?id=io.heckel.ntfy`
+- Required for receiving push notifications on your device
 
 #### GitHub Releases APK
 - Downloads APK from GitHub Releases
@@ -102,7 +95,6 @@ Required Android permissions:
 2. **Add Domain**
    - Tap + button on home screen
    - Enter domain URL (e.g., example.com)
-   - Optionally set expiry date
    - Choose check interval
    - Save
 
@@ -119,7 +111,7 @@ Required Android permissions:
 
 ## Limitations
 
-1. **Expiry Detection**: HTTP header-based detection is limited. Manual entry recommended.
+1. **Expiry Detection**: HTTP header-based detection is limited and may not work for all domains.
 2. **Android Only**: Currently supports only Android platform.
 3. **Storage**: Local storage only, no cloud sync.
 4. **Alarms**: Exact alarm behavior may vary by Android version and device manufacturer.

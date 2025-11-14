@@ -44,24 +44,15 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await http.head(Uri.parse('https://${domain.url}'));
-      
-      // Parse expiry date from headers (if available)
-      // Keep existing expiry date if no new one found
-      DateTime? expiryDate = domain.expiryDate;
       final expiry = response.headers['expires'];
       if (expiry != null) {
-        final parsedDate = DateTime.tryParse(expiry);
-        if (parsedDate != null) {
-          expiryDate = parsedDate;
-        }
+        final updatedDomain = domain.copyWith(
+          lastChecked: DateTime.now(),
+          expiryDate: DateTime.tryParse(expiry),
+        );
+        await StorageService.updateDomain(updatedDomain);
+        await _loadDomains();
       }
-      
-      final updatedDomain = domain.copyWith(
-        lastChecked: DateTime.now(),
-        expiryDate: expiryDate,
-      );
-      await StorageService.updateDomain(updatedDomain);
-      await _loadDomains();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -109,15 +100,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          // This would open Play Store in a real app
+                          // Opens ntfy.sh app on Play Store for notification handling
+                          // URL: https://play.google.com/store/apps/details?id=io.heckel.ntfy
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Opening Play Store...'),
+                              content: Text('Opening Play Store for ntfy.sh app...'),
                             ),
                           );
                         },
-                        icon: const Icon(Icons.shop),
-                        label: const Text('Play Store'),
+                        icon: const Icon(Icons.notifications),
+                        label: const Text('Install Ntfy'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),

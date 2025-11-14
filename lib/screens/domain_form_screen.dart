@@ -15,9 +15,7 @@ class DomainFormScreen extends StatefulWidget {
 class _DomainFormScreenState extends State<DomainFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _urlController;
-  late TextEditingController _expiryController;
   Duration _selectedInterval = const Duration(hours: 1);
-  DateTime? _selectedExpiryDate;
 
   final List<Duration> _intervalOptions = [
     const Duration(minutes: 15),
@@ -30,12 +28,6 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
   void initState() {
     super.initState();
     _urlController = TextEditingController(text: widget.domain?.url ?? '');
-    _selectedExpiryDate = widget.domain?.expiryDate;
-    _expiryController = TextEditingController(
-      text: _selectedExpiryDate != null
-          ? '${_selectedExpiryDate!.year}-${_selectedExpiryDate!.month.toString().padLeft(2, '0')}-${_selectedExpiryDate!.day.toString().padLeft(2, '0')}'
-          : '',
-    );
     if (widget.domain != null) {
       _selectedInterval = widget.domain!.checkInterval;
     }
@@ -44,7 +36,6 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
   @override
   void dispose() {
     _urlController.dispose();
-    _expiryController.dispose();
     super.dispose();
   }
 
@@ -65,7 +56,7 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
         url: _urlController.text.trim(),
         checkInterval: _selectedInterval,
         lastChecked: widget.domain?.lastChecked,
-        expiryDate: _selectedExpiryDate,
+        expiryDate: widget.domain?.expiryDate,
       );
 
       if (widget.domain == null) {
@@ -115,50 +106,6 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
                   return 'Please enter a valid domain';
                 }
                 return null;
-              },
-            ),
-            const SizedBox(height: 24),
-            TextFormField(
-              controller: _expiryController,
-              decoration: InputDecoration(
-                labelText: 'Expiry Date (Optional)',
-                hintText: 'YYYY-MM-DD',
-                prefixIcon: const Icon(Icons.calendar_today),
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_month),
-                  onPressed: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedExpiryDate ?? DateTime.now().add(const Duration(days: 365)),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 3650)),
-                    );
-                    if (date != null) {
-                      setState(() {
-                        _selectedExpiryDate = date;
-                        _expiryController.text =
-                            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                      });
-                    }
-                  },
-                ),
-              ),
-              validator: (value) {
-                if (value != null && value.isNotEmpty) {
-                  final date = DateTime.tryParse(value);
-                  if (date == null) {
-                    return 'Please enter a valid date (YYYY-MM-DD)';
-                  }
-                }
-                return null;
-              },
-              onChanged: (value) {
-                if (value.isNotEmpty) {
-                  _selectedExpiryDate = DateTime.tryParse(value);
-                } else {
-                  _selectedExpiryDate = null;
-                }
               },
             ),
             const SizedBox(height: 24),
