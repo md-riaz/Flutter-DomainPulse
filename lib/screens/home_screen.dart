@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../models/domain.dart';
 import '../services/storage_service.dart';
 import '../services/alarm_service.dart';
+import '../constants.dart';
 import 'domain_form_screen.dart';
 import 'settings_screen.dart';
 
@@ -64,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _getAppVersion() {
-    return '1.0.0'; // From pubspec.yaml
+    return kAppVersion;
   }
 
   @override

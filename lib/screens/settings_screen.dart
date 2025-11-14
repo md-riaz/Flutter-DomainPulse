@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/storage_service.dart';
 import '../services/notification_service.dart';
+import '../constants.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -199,7 +200,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const ListTile(
                           leading: Icon(Icons.info_outline),
                           title: Text('Version'),
-                          subtitle: Text('1.0.0'),
+                          subtitle: Text(kAppVersion),
                           contentPadding: EdgeInsets.zero,
                         ),
                         const ListTile(
