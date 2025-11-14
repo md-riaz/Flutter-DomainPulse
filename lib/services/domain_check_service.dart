@@ -32,11 +32,15 @@ class DomainCheckService {
         headers: {'User-Agent': 'DomainPulse/1.0'},
       ).timeout(const Duration(seconds: 10));
 
-      // Parse expiry date from headers
-      DateTime? expiryDate;
+      // Parse expiry date from headers (if available)
+      // Keep existing expiry date if no new one found
+      DateTime? expiryDate = domain.expiryDate;
       final expires = response.headers['expires'];
       if (expires != null) {
-        expiryDate = DateTime.tryParse(expires);
+        final parsedDate = DateTime.tryParse(expires);
+        if (parsedDate != null) {
+          expiryDate = parsedDate;
+        }
       }
 
       // Update domain with new check time and expiry

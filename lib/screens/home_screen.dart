@@ -44,15 +44,24 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await http.head(Uri.parse('https://${domain.url}'));
+      
+      // Parse expiry date from headers (if available)
+      // Keep existing expiry date if no new one found
+      DateTime? expiryDate = domain.expiryDate;
       final expiry = response.headers['expires'];
       if (expiry != null) {
-        final updatedDomain = domain.copyWith(
-          lastChecked: DateTime.now(),
-          expiryDate: DateTime.tryParse(expiry),
-        );
-        await StorageService.updateDomain(updatedDomain);
-        await _loadDomains();
+        final parsedDate = DateTime.tryParse(expiry);
+        if (parsedDate != null) {
+          expiryDate = parsedDate;
+        }
       }
+      
+      final updatedDomain = domain.copyWith(
+        lastChecked: DateTime.now(),
+        expiryDate: expiryDate,
+      );
+      await StorageService.updateDomain(updatedDomain);
+      await _loadDomains();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
