@@ -10,6 +10,7 @@ void main() {
         checkInterval: const Duration(hours: 1),
         lastChecked: DateTime(2024, 1, 1, 12, 0),
         expiryDate: DateTime(2024, 12, 31, 23, 59),
+        alarmId: 1001,
       );
 
       final json = domain.toJson();
@@ -20,6 +21,7 @@ void main() {
       expect(decoded.checkInterval, domain.checkInterval);
       expect(decoded.lastChecked, domain.lastChecked);
       expect(decoded.expiryDate, domain.expiryDate);
+      expect(decoded.alarmId, domain.alarmId);
     });
 
     test('Domain copyWith', () {
@@ -27,6 +29,7 @@ void main() {
         id: '123',
         url: 'example.com',
         checkInterval: const Duration(hours: 1),
+        alarmId: 1002,
       );
 
       final updated = domain.copyWith(
@@ -38,6 +41,7 @@ void main() {
       expect(updated.url, 'newexample.com');
       expect(updated.checkInterval, domain.checkInterval);
       expect(updated.expiryDate, DateTime(2024, 12, 31));
+      expect(updated.alarmId, domain.alarmId);
     });
 
     test('Domain with null dates', () {
@@ -45,6 +49,7 @@ void main() {
         id: '123',
         url: 'example.com',
         checkInterval: const Duration(hours: 1),
+        alarmId: 1003,
       );
 
       final json = domain.toJson();
@@ -52,6 +57,7 @@ void main() {
 
       expect(decoded.lastChecked, isNull);
       expect(decoded.expiryDate, isNull);
+      expect(decoded.alarmId, 1003);
     });
   });
 }

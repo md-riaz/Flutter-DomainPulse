@@ -16,6 +16,7 @@ This app uses minimal dependencies:
 - `flutter` - Flutter SDK
 - `http` (^1.1.0) - For domain checking and notifications
 - `android_alarm_manager_plus` (^3.0.4) - For background alarm scheduling
+- `path_provider` (^2.1.1) - For proper Android storage access
 
 ## Setup
 

@@ -34,9 +34,9 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _deleteDomain(String id) async {
-    await StorageService.deleteDomain(id);
-    await AlarmService.cancelAlarm(id.hashCode);
+  Future<void> _deleteDomain(Domain domain) async {
+    await AlarmService.cancelAlarm(domain.alarmId);
+    await StorageService.deleteDomain(domain.id);
     await _loadDomains();
   }
 
@@ -241,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.delete),
-                                    onPressed: () => _deleteDomain(domain.id),
+                                    onPressed: () => _deleteDomain(domain),
                                   ),
                                 ],
                               ),

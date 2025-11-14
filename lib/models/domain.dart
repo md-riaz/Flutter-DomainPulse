@@ -4,6 +4,7 @@ class Domain {
   final Duration checkInterval;
   final DateTime? lastChecked;
   final DateTime? expiryDate;
+  final int alarmId;
 
   Domain({
     required this.id,
@@ -11,6 +12,7 @@ class Domain {
     required this.checkInterval,
     this.lastChecked,
     this.expiryDate,
+    required this.alarmId,
   });
 
   Map<String, dynamic> toJson() {
@@ -20,6 +22,7 @@ class Domain {
       'checkInterval': checkInterval.inSeconds,
       'lastChecked': lastChecked?.toIso8601String(),
       'expiryDate': expiryDate?.toIso8601String(),
+      'alarmId': alarmId,
     };
   }
 
@@ -34,6 +37,7 @@ class Domain {
       expiryDate: json['expiryDate'] != null
           ? DateTime.parse(json['expiryDate'] as String)
           : null,
+      alarmId: json['alarmId'] as int,
     );
   }
 
@@ -43,6 +47,7 @@ class Domain {
     Duration? checkInterval,
     DateTime? lastChecked,
     DateTime? expiryDate,
+    int? alarmId,
   }) {
     return Domain(
       id: id ?? this.id,
@@ -50,6 +55,7 @@ class Domain {
       checkInterval: checkInterval ?? this.checkInterval,
       lastChecked: lastChecked ?? this.lastChecked,
       expiryDate: expiryDate ?? this.expiryDate,
+      alarmId: alarmId ?? this.alarmId,
     );
   }
 }

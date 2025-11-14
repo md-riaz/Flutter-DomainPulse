@@ -70,13 +70,14 @@ The home screen includes two buttons:
 - `flutter` - Flutter SDK
 - `http` (^1.1.0) - HTTP requests for domain checks and notifications
 - `android_alarm_manager_plus` (^3.0.4) - Background alarm scheduling
+- `path_provider` (^2.1.1) - Proper Android storage access
 
 ### Data Storage
 - Local file-based storage using JSON
-- Stored in `/tmp/domainpulse/` directory
+- Stored in application documents directory (via path_provider)
 - Two files:
-  - `domains.json` - Domain list with configurations
-  - `settings.json` - App settings (ntfy.sh topic)
+  - `domains.json` - Domain list with configurations and persistent alarm IDs
+  - `settings.json` - App settings (ntfy.sh topic, next alarm ID counter)
 
 ### Permissions
 Required Android permissions:

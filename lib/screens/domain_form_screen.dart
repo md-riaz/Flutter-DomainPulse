@@ -57,6 +57,7 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
         checkInterval: _selectedInterval,
         lastChecked: widget.domain?.lastChecked,
         expiryDate: widget.domain?.expiryDate,
+        alarmId: widget.domain?.alarmId ?? StorageService.generateAlarmId(),
       );
 
       if (widget.domain == null) {
@@ -65,9 +66,9 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
         await StorageService.updateDomain(domain);
       }
 
-      // Schedule alarm
+      // Schedule alarm with deterministic alarm ID
       await AlarmService.scheduleAlarm(
-        domain.id.hashCode,
+        domain.alarmId,
         _selectedInterval,
         domain.url,
       );

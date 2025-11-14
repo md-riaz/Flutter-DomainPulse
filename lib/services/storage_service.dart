@@ -1,20 +1,57 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/domain.dart';
 
 class StorageService {
   static late String _dataPath;
   static const String _domainsFile = 'domains.json';
   static const String _settingsFile = 'settings.json';
+  static int _nextAlarmId = 1000;
 
   static Future<void> init() async {
-    // In a real app, use path_provider. For simplicity, use /tmp
-    _dataPath = '/tmp/domainpulse';
-    final dir = Directory(_dataPath);
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
+    // Use path_provider for proper Android storage
+    final directory = await getApplicationDocumentsDirectory();
+    _dataPath = directory.path;
+    
+    // Load the next alarm ID from storage
+    await _loadNextAlarmId();
+  }
+
+  static Future<void> _loadNextAlarmId() async {
+    try {
+      final file = await _getSettingsFile();
+      if (await file.exists()) {
+        final contents = await file.readAsString();
+        final Map<String, dynamic> settings = json.decode(contents);
+        _nextAlarmId = settings['nextAlarmId'] as int? ?? 1000;
+      }
+    } catch (e) {
+      debugPrint('Error loading nextAlarmId: $e');
+      _nextAlarmId = 1000;
     }
+  }
+
+  static Future<void> _saveNextAlarmId() async {
+    try {
+      final file = await _getSettingsFile();
+      Map<String, dynamic> settings = {};
+      if (await file.exists()) {
+        final contents = await file.readAsString();
+        settings = json.decode(contents);
+      }
+      settings['nextAlarmId'] = _nextAlarmId;
+      await file.writeAsString(json.encode(settings));
+    } catch (e) {
+      debugPrint('Error saving nextAlarmId: $e');
+    }
+  }
+
+  static int generateAlarmId() {
+    final id = _nextAlarmId++;
+    _saveNextAlarmId();
+    return id;
   }
 
   static Future<File> _getDomainsFile() async {
