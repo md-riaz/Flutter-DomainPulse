@@ -295,39 +295,65 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
                 _showCustomIntervalDialog();
               },
             ),
-            const SizedBox(height: 24),
-            Text(
-              'Notification Timing',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'When to receive notification:',
-              style: TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<Duration>(
-              value: _notificationOptions.contains(_notifyBeforeExpiry)
-                  ? _notifyBeforeExpiry
-                  : _notificationOptions[0],
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.notifications_active),
-                border: OutlineInputBorder(),
+            // Only show notification timing for domains monitoring expiry
+            if (_monitoringMode == MonitoringMode.expiryOnly ||
+                _monitoringMode == MonitoringMode.both) ...[
+              const SizedBox(height: 24),
+              Text(
+                'Expiry Notification Timing',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              items: _notificationOptions.map((duration) {
-                return DropdownMenuItem(
-                  value: duration,
-                  child: Text(_formatNotificationDuration(duration)),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _notifyBeforeExpiry = value;
-                  });
-                }
-              },
-            ),
+              const SizedBox(height: 8),
+              const Text(
+                'When to receive expiry notification:',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<Duration>(
+                value: _notificationOptions.contains(_notifyBeforeExpiry)
+                    ? _notifyBeforeExpiry
+                    : _notificationOptions[0],
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.notifications_active),
+                  border: OutlineInputBorder(),
+                ),
+                items: _notificationOptions.map((duration) {
+                  return DropdownMenuItem(
+                    value: duration,
+                    child: Text(_formatNotificationDuration(duration)),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _notifyBeforeExpiry = value;
+                    });
+                  }
+                },
+              ),
+            ],
+            // Note for availability-only mode
+            if (_monitoringMode == MonitoringMode.availabilityOnly) ...[
+              const SizedBox(height: 24),
+              Card(
+                color: Colors.blue.shade50,
+                child: const Padding(
+                  padding: EdgeInsets.all(12.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Availability notifications are sent immediately when a domain becomes available.',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _isSaving ? null : _saveDomain,
