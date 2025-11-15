@@ -137,7 +137,8 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
         await StorageService.addDomain(domain);
         
         // Send immediate notification about domain expiration (internally UTC, displayed in Asia/Dhaka)
-        if (expiryDate != null) {
+        if (expiryDate != null && (_monitoringMode == MonitoringMode.expiryOnly || 
+            _monitoringMode == MonitoringMode.both)) {
           final now = DateTime.now().toUtc();
           final daysUntilExpiry = expiryDate.difference(now).inDays;
           // Convert to Asia/Dhaka time (UTC+6) for display
@@ -161,6 +162,24 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
             message,
             type: NotificationType.expiry,
           );
+        }
+        
+        // Send immediate notification about domain availability
+        if (isAvailable != null && (_monitoringMode == MonitoringMode.availabilityOnly || 
+            _monitoringMode == MonitoringMode.both)) {
+          if (isAvailable) {
+            await NotificationService.sendNotification(
+              'Domain Available',
+              'Domain $url was added and is currently AVAILABLE for registration! You can register it now.',
+              type: NotificationType.availability,
+            );
+          } else {
+            await NotificationService.sendNotification(
+              'Domain Added',
+              'Domain $url was added to availability monitoring. You will be notified when it becomes available for registration.',
+              type: NotificationType.availability,
+            );
+          }
         }
       } else {
         await StorageService.updateDomain(domain);
