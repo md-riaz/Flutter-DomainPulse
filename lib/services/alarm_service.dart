@@ -39,15 +39,21 @@ class AlarmService {
   static Future<void> _alarmCallback() async {
     debugPrint('Alarm callback triggered');
     
-    // Initialize Flutter engine for background execution
-    WidgetsFlutterBinding.ensureInitialized();
-    
-    // Initialize notification service for background notifications
-    await NotificationService.initialize();
-    
-    // Check all domains (this will initialize StorageService internally)
-    await DomainCheckService.checkAllDomains();
-    
-    debugPrint('Alarm callback completed');
+    try {
+      // Initialize Flutter engine for background execution
+      WidgetsFlutterBinding.ensureInitialized();
+      
+      // Initialize notification service for background notifications
+      await NotificationService.initialize();
+      
+      // Check all domains (this will initialize StorageService internally)
+      await DomainCheckService.checkAllDomains();
+      
+      debugPrint('Alarm callback completed successfully');
+    } catch (e, stackTrace) {
+      debugPrint('Error in alarm callback: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Don't rethrow - allow alarm to complete and schedule next run
+    }
   }
 }
