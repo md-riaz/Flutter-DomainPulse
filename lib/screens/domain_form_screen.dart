@@ -119,32 +119,28 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
         
         // Send immediate notification about domain expiration (internally UTC, displayed in Asia/Dhaka)
         if (expiryDate != null) {
-          final ntfyTopic = await StorageService.getNtfyTopic();
-          if (ntfyTopic != null) {
-            final now = DateTime.now().toUtc();
-            final daysUntilExpiry = expiryDate.difference(now).inDays;
-            // Convert to Asia/Dhaka time (UTC+6) for display
-            final dhakaTime = expiryDate.add(const Duration(hours: 6));
-            final expiryDateStr = '${dhakaTime.year}-${dhakaTime.month.toString().padLeft(2, '0')}-${dhakaTime.day.toString().padLeft(2, '0')} '
-                '${dhakaTime.hour.toString().padLeft(2, '0')}:${dhakaTime.minute.toString().padLeft(2, '0')} Asia/Dhaka';
-            
-            String message;
-            if (daysUntilExpiry < 0) {
-              final daysExpired = -daysUntilExpiry;
-              message = 'Domain $url was added. It expired $daysExpired day${daysExpired != 1 ? 's' : ''} ago on $expiryDateStr.';
-            } else if (daysUntilExpiry == 0) {
-              final hoursUntilExpiry = expiryDate.difference(now).inHours;
-              message = 'Domain $url was added. It expires today in $hoursUntilExpiry hour${hoursUntilExpiry != 1 ? 's' : ''} on $expiryDateStr!';
-            } else {
-              message = 'Domain $url was added. It expires on $expiryDateStr (in $daysUntilExpiry day${daysUntilExpiry != 1 ? 's' : ''}).';
-            }
-            
-            await NotificationService.sendNotification(
-              ntfyTopic,
-              'Domain Added',
-              message,
-            );
+          final now = DateTime.now().toUtc();
+          final daysUntilExpiry = expiryDate.difference(now).inDays;
+          // Convert to Asia/Dhaka time (UTC+6) for display
+          final dhakaTime = expiryDate.add(const Duration(hours: 6));
+          final expiryDateStr = '${dhakaTime.year}-${dhakaTime.month.toString().padLeft(2, '0')}-${dhakaTime.day.toString().padLeft(2, '0')} '
+              '${dhakaTime.hour.toString().padLeft(2, '0')}:${dhakaTime.minute.toString().padLeft(2, '0')} Asia/Dhaka';
+          
+          String message;
+          if (daysUntilExpiry < 0) {
+            final daysExpired = -daysUntilExpiry;
+            message = 'Domain $url was added. It expired $daysExpired day${daysExpired != 1 ? 's' : ''} ago on $expiryDateStr.';
+          } else if (daysUntilExpiry == 0) {
+            final hoursUntilExpiry = expiryDate.difference(now).inHours;
+            message = 'Domain $url was added. It expires today in $hoursUntilExpiry hour${hoursUntilExpiry != 1 ? 's' : ''} on $expiryDateStr!';
+          } else {
+            message = 'Domain $url was added. It expires on $expiryDateStr (in $daysUntilExpiry day${daysUntilExpiry != 1 ? 's' : ''}).';
           }
+          
+          await NotificationService.sendNotification(
+            'Domain Added',
+            message,
+          );
         }
       } else {
         await StorageService.updateDomain(domain);

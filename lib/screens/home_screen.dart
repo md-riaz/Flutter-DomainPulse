@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../models/domain.dart';
 import '../services/storage_service.dart';
 import '../services/alarm_service.dart';
@@ -103,49 +102,18 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          // Install button section
+          // App version section
           Container(
             padding: const EdgeInsets.all(16.0),
             color: Theme.of(context).colorScheme.primaryContainer,
-            child: Column(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    // Opens ntfy.sh app on Play Store for notification handling
-                    final playStoreUrl = Uri.parse('https://play.google.com/store/apps/details?id=io.heckel.ntfy');
-                    try {
-                      if (await canLaunchUrl(playStoreUrl)) {
-                        await launchUrl(playStoreUrl, mode: LaunchMode.externalApplication);
-                      } else {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Could not open Play Store'),
-                            ),
-                          );
-                        }
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error opening Play Store: $e'),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  icon: const Icon(Icons.notifications),
-                  label: const Text('Install Ntfy from Play Store'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    minimumSize: const Size(double.infinity, 48),
-                  ),
-                ),
-                const SizedBox(height: 8),
+                const Icon(Icons.domain, size: 20),
+                const SizedBox(width: 8),
                 Text(
-                  'Version: ${_getAppVersion()}',
-                  style: Theme.of(context).textTheme.bodySmall,
+                  'DomainPulse - Version: ${_getAppVersion()}',
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
               ],
             ),

@@ -34,12 +34,12 @@
 
 Each domain can have its own check interval.
 
-### 4. Push Notifications
+### 4. Local Notifications
 
-#### Ntfy.sh Integration
-- One-time topic setup in Settings
-- No account or authentication required
-- Subscribe to your topic at: https://ntfy.sh/your-topic-name
+#### Native Android Notifications
+- Local notifications delivered directly on the device
+- No external services or accounts required
+- No internet needed for notification delivery
 
 #### Alert Triggers
 Notifications are sent based on configurable timing per domain:
@@ -53,63 +53,52 @@ Alert messages include:
 - Time elapsed since expiry (e.g., "expired 2 hours ago")
 - Clear, human-readable time formatting
 
-### 5. Easy App Installation
-
-The home screen includes a Play Store button:
-
-#### Install Ntfy from Play Store
-- One-tap access to install the ntfy.sh app from Google Play Store
-- Opens the ntfy.sh app page directly: `https://play.google.com/store/apps/details?id=io.heckel.ntfy`
-- Required for receiving push notifications on your device
-- Uses `url_launcher` package for seamless external app opening
-
 ## Technical Implementation
 
 ### Minimal Dependencies
 - `flutter` - Flutter SDK
-- `http` (^1.1.0) - HTTP requests for domain checks and notifications
 - `android_alarm_manager_plus` (^4.0.0) - Background alarm scheduling
 - `path_provider` (^2.1.1) - Proper Android storage access
-- `url_launcher` (^6.2.0) - Opening Play Store links
+- `url_launcher` (^6.2.0) - Opening URLs
+- `flutter_local_notifications` (^17.0.0) - Local notification delivery
 
 ### Data Storage
 - Local file-based storage using JSON
 - Stored in application documents directory (via path_provider)
 - Two files:
   - `domains.json` - Domain list with configurations and persistent alarm IDs
-  - `settings.json` - App settings (ntfy.sh topic, next alarm ID counter)
+  - `settings.json` - App settings (next alarm ID counter)
 
 ### Permissions
 Required Android permissions:
-- `INTERNET` - For domain checks and notifications
 - `RECEIVE_BOOT_COMPLETED` - Reschedule alarms after reboot
 - `WAKE_LOCK` - Wake device for scheduled checks
 - `SCHEDULE_EXACT_ALARM` - Precise alarm timing
+- `POST_NOTIFICATIONS` - Show local notifications
+- `VIBRATE` - Notification vibration
 
 ## User Workflow
 
-1. **Initial Setup**
-   - Open Settings
-   - Enter a unique ntfy.sh topic name
-   - Test notification to verify setup
-
-2. **Add Domain**
+1. **Add Domain**
    - Tap + button on home screen
    - Enter domain URL (e.g., example.com)
    - Choose check interval (15m, 1h, 6h, 1d, or custom)
    - Set notification timing (30m, 1h, 6h, 12h, 1d, 7d, or 30d before expiry)
    - Save
 
-3. **Monitor Domains**
+2. **Monitor Domains**
    - View all domains on home screen
    - Domains expiring soon shown in red
    - Manual refresh available per domain
    - Edit or delete as needed
 
-4. **Receive Alerts**
-   - Subscribe to your ntfy.sh topic
-   - Receive push notifications
+3. **Receive Alerts**
+   - Receive local notifications directly on your device
    - Act on expiring domains before it's too late
+
+4. **Test Notifications** (Optional)
+   - Go to Settings
+   - Tap "Test Notification" to verify notifications are working
 
 ## Limitations
 

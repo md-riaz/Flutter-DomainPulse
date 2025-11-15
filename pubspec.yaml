@@ -9,10 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.1.0
   android_alarm_manager_plus: ^4.0.0
   path_provider: ^2.1.1
   url_launcher: ^6.2.0
+  flutter_local_notifications: ^17.0.0
 
 dev_dependencies:
   flutter_test:
