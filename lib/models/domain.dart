@@ -1,3 +1,9 @@
+enum MonitoringMode {
+  expiryOnly,
+  availabilityOnly,
+  both,
+}
+
 class Domain {
   final String id;
   final String url;
@@ -8,6 +14,7 @@ class Domain {
   final Duration notifyBeforeExpiry;
   final bool? isAvailable;
   final DateTime? lastAvailabilityCheck;
+  final MonitoringMode monitoringMode;
 
   Domain({
     required this.id,
@@ -19,6 +26,7 @@ class Domain {
     this.notifyBeforeExpiry = const Duration(hours: 1),
     this.isAvailable,
     this.lastAvailabilityCheck,
+    this.monitoringMode = MonitoringMode.both,
   });
 
   Map<String, dynamic> toJson() {
@@ -32,6 +40,7 @@ class Domain {
       'notifyBeforeExpiry': notifyBeforeExpiry.inSeconds,
       'isAvailable': isAvailable,
       'lastAvailabilityCheck': lastAvailabilityCheck?.toIso8601String(),
+      'monitoringMode': monitoringMode.name,
     };
   }
 
@@ -54,6 +63,12 @@ class Domain {
       lastAvailabilityCheck: json['lastAvailabilityCheck'] != null
           ? DateTime.parse(json['lastAvailabilityCheck'] as String)
           : null,
+      monitoringMode: json['monitoringMode'] != null
+          ? MonitoringMode.values.firstWhere(
+              (e) => e.name == json['monitoringMode'],
+              orElse: () => MonitoringMode.both,
+            )
+          : MonitoringMode.both,
     );
   }
 
@@ -67,6 +82,7 @@ class Domain {
     Duration? notifyBeforeExpiry,
     bool? isAvailable,
     DateTime? lastAvailabilityCheck,
+    MonitoringMode? monitoringMode,
   }) {
     return Domain(
       id: id ?? this.id,
@@ -78,6 +94,7 @@ class Domain {
       notifyBeforeExpiry: notifyBeforeExpiry ?? this.notifyBeforeExpiry,
       isAvailable: isAvailable ?? this.isAvailable,
       lastAvailabilityCheck: lastAvailabilityCheck ?? this.lastAvailabilityCheck,
+      monitoringMode: monitoringMode ?? this.monitoringMode,
     );
   }
 }

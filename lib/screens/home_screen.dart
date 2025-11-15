@@ -42,29 +42,51 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _checkDomain(Domain domain) async {
     setState(() => _isLoading = true);
     try {
-      final expiryDate = await RdapService.getDomainExpiry(domain.url);
-      final isAvailable = await RdapService.isDomainAvailable(domain.url);
+      DateTime? expiryDate;
+      bool? isAvailable;
+      
+      // Check expiry if monitoring expiry
+      if (domain.monitoringMode == MonitoringMode.expiryOnly || 
+          domain.monitoringMode == MonitoringMode.both) {
+        expiryDate = await RdapService.getDomainExpiry(domain.url);
+      }
+      
+      // Check availability if monitoring availability
+      if (domain.monitoringMode == MonitoringMode.availabilityOnly || 
+          domain.monitoringMode == MonitoringMode.both) {
+        isAvailable = await RdapService.isDomainAvailable(domain.url);
+      }
+      
       final updatedDomain = domain.copyWith(
         lastChecked: DateTime.now().toUtc(),
-        expiryDate: expiryDate,
-        isAvailable: isAvailable,
-        lastAvailabilityCheck: DateTime.now().toUtc(),
+        expiryDate: expiryDate ?? domain.expiryDate,
+        isAvailable: isAvailable ?? domain.isAvailable,
+        lastAvailabilityCheck: isAvailable != null ? DateTime.now().toUtc() : domain.lastAvailabilityCheck,
       );
       await StorageService.updateDomain(updatedDomain);
       await _loadDomains();
       
       if (mounted) {
         String message = '';
-        if (expiryDate != null) {
-          message = 'Expires: ${_formatDate(expiryDate)}';
-        } else {
-          message = 'Could not fetch expiration date';
+        
+        if (domain.monitoringMode == MonitoringMode.expiryOnly || 
+            domain.monitoringMode == MonitoringMode.both) {
+          if (expiryDate != null) {
+            message = 'Expires: ${_formatDate(expiryDate)}';
+          } else {
+            message = 'Could not fetch expiration date';
+          }
         }
         
-        if (isAvailable == true) {
-          message += '\n✓ Domain is AVAILABLE for registration';
-        } else if (isAvailable == false) {
-          message += '\n✗ Domain is registered';
+        if (domain.monitoringMode == MonitoringMode.availabilityOnly || 
+            domain.monitoringMode == MonitoringMode.both) {
+          if (isAvailable == true) {
+            if (message.isNotEmpty) message += '\n';
+            message += '✓ Domain is AVAILABLE for registration';
+          } else if (isAvailable == false) {
+            if (message.isNotEmpty) message += '\n';
+            message += '✗ Domain is registered';
+          }
         }
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -228,6 +250,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                       style: Theme.of(context).textTheme.bodySmall,
                                     ),
                                   Text(
+                                    'Mode: ${_formatMonitoringMode(domain.monitoringMode)}',
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                  Text(
                                     'Check interval: ${_formatInterval(domain.checkInterval)}',
                                     style: Theme.of(context).textTheme.bodySmall,
                                   ),
@@ -309,6 +335,17 @@ class _HomeScreenState extends State<HomeScreen> {
       return '${interval.inHours}h before expiry';
     } else {
       return '${interval.inDays}d before expiry';
+    }
+  }
+
+  String _formatMonitoringMode(MonitoringMode mode) {
+    switch (mode) {
+      case MonitoringMode.expiryOnly:
+        return 'Expiry only';
+      case MonitoringMode.availabilityOnly:
+        return 'Availability only';
+      case MonitoringMode.both:
+        return 'Expiry + Availability';
     }
   }
 }

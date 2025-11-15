@@ -19,6 +19,7 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
   late TextEditingController _urlController;
   Duration _selectedInterval = const Duration(hours: 1);
   Duration _notifyBeforeExpiry = Duration.zero; // Default to after expiration
+  MonitoringMode _monitoringMode = MonitoringMode.both;
   bool _isSaving = false;
 
   final List<Duration> _intervalOptions = [
@@ -46,6 +47,7 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
     if (widget.domain != null) {
       _selectedInterval = widget.domain!.checkInterval;
       _notifyBeforeExpiry = widget.domain!.notifyBeforeExpiry;
+      _monitoringMode = widget.domain!.monitoringMode;
     }
   }
 
@@ -87,23 +89,34 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
     try {
       final url = _urlController.text.trim();
       DateTime? expiryDate;
+      bool? isAvailable;
 
-      // For new domains, check if domain exists and has expiration date using RDAP
+      // For new domains, check based on monitoring mode
       if (widget.domain == null) {
-        expiryDate = await RdapService.getDomainExpiry(url);
-        
-        if (expiryDate == null) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Could not fetch domain expiration date via RDAP. Please check the domain name is correct.'),
-                duration: Duration(seconds: 4),
-                backgroundColor: Colors.orange,
-              ),
-            );
+        // Check expiry if monitoring expiry
+        if (_monitoringMode == MonitoringMode.expiryOnly || 
+            _monitoringMode == MonitoringMode.both) {
+          expiryDate = await RdapService.getDomainExpiry(url);
+          
+          if (expiryDate == null && _monitoringMode == MonitoringMode.expiryOnly) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Could not fetch domain expiration date via RDAP. Please check the domain name is correct.'),
+                  duration: Duration(seconds: 4),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+            setState(() => _isSaving = false);
+            return;
           }
-          setState(() => _isSaving = false);
-          return;
+        }
+        
+        // Check availability if monitoring availability
+        if (_monitoringMode == MonitoringMode.availabilityOnly || 
+            _monitoringMode == MonitoringMode.both) {
+          isAvailable = await RdapService.isDomainAvailable(url);
         }
       }
 
@@ -115,6 +128,9 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
         expiryDate: expiryDate ?? widget.domain?.expiryDate,
         alarmId: widget.domain?.alarmId ?? StorageService.generateAlarmId(),
         notifyBeforeExpiry: _notifyBeforeExpiry,
+        monitoringMode: _monitoringMode,
+        isAvailable: isAvailable ?? widget.domain?.isAvailable,
+        lastAvailabilityCheck: isAvailable != null ? DateTime.now().toUtc() : widget.domain?.lastAvailabilityCheck,
       );
 
       if (widget.domain == null) {
@@ -203,6 +219,50 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
                   return 'Please enter a valid domain';
                 }
                 return null;
+              },
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Monitoring Mode',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Choose what to monitor for this domain:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            RadioListTile<MonitoringMode>(
+              title: const Text('Monitor Expiry Only'),
+              subtitle: const Text('For domains you own - track expiration dates'),
+              value: MonitoringMode.expiryOnly,
+              groupValue: _monitoringMode,
+              onChanged: (value) {
+                setState(() {
+                  _monitoringMode = value!;
+                });
+              },
+            ),
+            RadioListTile<MonitoringMode>(
+              title: const Text('Monitor Availability Only'),
+              subtitle: const Text('For domains you want - get notified when available'),
+              value: MonitoringMode.availabilityOnly,
+              groupValue: _monitoringMode,
+              onChanged: (value) {
+                setState(() {
+                  _monitoringMode = value!;
+                });
+              },
+            ),
+            RadioListTile<MonitoringMode>(
+              title: const Text('Monitor Both'),
+              subtitle: const Text('Track both expiry and availability'),
+              value: MonitoringMode.both,
+              groupValue: _monitoringMode,
+              onChanged: (value) {
+                setState(() {
+                  _monitoringMode = value!;
+                });
               },
             ),
             const SizedBox(height: 24),

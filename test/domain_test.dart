@@ -14,6 +14,7 @@ void main() {
         notifyBeforeExpiry: const Duration(hours: 6),
         isAvailable: false,
         lastAvailabilityCheck: DateTime(2024, 1, 1, 12, 0),
+        monitoringMode: MonitoringMode.both,
       );
 
       final json = domain.toJson();
@@ -28,6 +29,7 @@ void main() {
       expect(decoded.notifyBeforeExpiry, domain.notifyBeforeExpiry);
       expect(decoded.isAvailable, domain.isAvailable);
       expect(decoded.lastAvailabilityCheck, domain.lastAvailabilityCheck);
+      expect(decoded.monitoringMode, domain.monitoringMode);
     });
 
     test('Domain copyWith', () {
@@ -76,6 +78,7 @@ void main() {
       expect(decoded.notifyBeforeExpiry, const Duration(hours: 1));
       expect(decoded.isAvailable, isNull);
       expect(decoded.lastAvailabilityCheck, isNull);
+      expect(decoded.monitoringMode, MonitoringMode.both);
     });
 
     test('Domain defaults notifyBeforeExpiry to 1 hour when missing', () {
@@ -89,6 +92,7 @@ void main() {
       final domain = Domain.fromJson(json);
 
       expect(domain.notifyBeforeExpiry, const Duration(hours: 1));
+      expect(domain.monitoringMode, MonitoringMode.both);
     });
 
     test('Domain with availability status', () {
@@ -129,6 +133,56 @@ void main() {
       expect(domain.isAvailable, false);
       expect(updated.isAvailable, true);
       expect(updated.lastAvailabilityCheck, DateTime(2024, 1, 20, 14, 0));
+    });
+
+    test('Domain with expiry only monitoring mode', () {
+      final domain = Domain(
+        id: '111',
+        url: 'owned-domain.com',
+        checkInterval: const Duration(hours: 6),
+        alarmId: 1007,
+        notifyBeforeExpiry: const Duration(days: 7),
+        monitoringMode: MonitoringMode.expiryOnly,
+      );
+
+      final json = domain.toJson();
+      final decoded = Domain.fromJson(json);
+
+      expect(decoded.monitoringMode, MonitoringMode.expiryOnly);
+      expect(decoded.url, 'owned-domain.com');
+    });
+
+    test('Domain with availability only monitoring mode', () {
+      final domain = Domain(
+        id: '222',
+        url: 'wanted-domain.com',
+        checkInterval: const Duration(hours: 1),
+        alarmId: 1008,
+        monitoringMode: MonitoringMode.availabilityOnly,
+      );
+
+      final json = domain.toJson();
+      final decoded = Domain.fromJson(json);
+
+      expect(decoded.monitoringMode, MonitoringMode.availabilityOnly);
+      expect(decoded.url, 'wanted-domain.com');
+    });
+
+    test('Domain monitoring mode can be changed', () {
+      final domain = Domain(
+        id: '333',
+        url: 'test-mode.com',
+        checkInterval: const Duration(hours: 1),
+        alarmId: 1009,
+        monitoringMode: MonitoringMode.expiryOnly,
+      );
+
+      final updated = domain.copyWith(
+        monitoringMode: MonitoringMode.both,
+      );
+
+      expect(domain.monitoringMode, MonitoringMode.expiryOnly);
+      expect(updated.monitoringMode, MonitoringMode.both);
     });
   });
 }
