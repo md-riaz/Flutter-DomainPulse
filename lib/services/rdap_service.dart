@@ -2,8 +2,44 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
-/// Service for checking domain expiration using RDAP (Registration Data Access Protocol)
+/// Service for checking domain expiration and availability using RDAP (Registration Data Access Protocol)
 class RdapService {
+  /// Check if a domain is available for registration
+  /// Returns true if available, false if registered, null if unknown
+  static Future<bool?> isDomainAvailable(String domain) async {
+    try {
+      final url = 'https://rdap.org/domain/${Uri.encodeComponent(domain)}';
+      debugPrint('Checking domain availability from: $url');
+      
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'DomainPulse/1.0',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      // If status is 404, domain is not registered (available)
+      if (response.statusCode == 404) {
+        debugPrint('Domain $domain is available (404 response)');
+        return true;
+      }
+
+      // If status is 200, domain is registered (not available)
+      if (response.statusCode == 200) {
+        debugPrint('Domain $domain is registered (200 response)');
+        return false;
+      }
+
+      // Other status codes mean we can't determine availability
+      debugPrint('RDAP request returned status ${response.statusCode}, availability unknown');
+      return null;
+    } catch (e) {
+      debugPrint('Error checking domain availability for $domain: $e');
+      return null;
+    }
+  }
+
   /// Get domain expiry date from RDAP
   /// Returns the expiry date in UTC or null if not found
   static Future<DateTime?> getDomainExpiry(String domain) async {

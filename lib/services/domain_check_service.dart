@@ -22,11 +22,20 @@ class DomainCheckService {
       
       // Fetch domain expiry via RDAP
       final expiryDate = await RdapService.getDomainExpiry(domain.url);
+      
+      // Check domain availability
+      final isAvailable = await RdapService.isDomainAvailable(domain.url);
 
-      // Update domain with new check time and expiry
+      // Track if domain became available
+      final wasUnavailable = domain.isAvailable == false;
+      final isNowAvailable = isAvailable == true;
+
+      // Update domain with new check time, expiry, and availability
       final updatedDomain = domain.copyWith(
         lastChecked: DateTime.now().toUtc(),
         expiryDate: expiryDate,
+        isAvailable: isAvailable,
+        lastAvailabilityCheck: DateTime.now().toUtc(),
       );
       await StorageService.updateDomain(updatedDomain);
 
@@ -71,6 +80,14 @@ class DomainCheckService {
             message,
           );
         }
+      }
+
+      // Send notification if domain became available
+      if (wasUnavailable && isNowAvailable) {
+        await NotificationService.sendNotification(
+          'Domain Available: ${domain.url}',
+          'Domain ${domain.url} is now available for registration! Act fast to secure it before someone else does.',
+        );
       }
 
       debugPrint('Domain check completed for ${domain.url}');

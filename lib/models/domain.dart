@@ -6,6 +6,8 @@ class Domain {
   final DateTime? expiryDate;
   final int alarmId;
   final Duration notifyBeforeExpiry;
+  final bool? isAvailable;
+  final DateTime? lastAvailabilityCheck;
 
   Domain({
     required this.id,
@@ -15,6 +17,8 @@ class Domain {
     this.expiryDate,
     required this.alarmId,
     this.notifyBeforeExpiry = const Duration(hours: 1),
+    this.isAvailable,
+    this.lastAvailabilityCheck,
   });
 
   Map<String, dynamic> toJson() {
@@ -26,6 +30,8 @@ class Domain {
       'expiryDate': expiryDate?.toIso8601String(),
       'alarmId': alarmId,
       'notifyBeforeExpiry': notifyBeforeExpiry.inSeconds,
+      'isAvailable': isAvailable,
+      'lastAvailabilityCheck': lastAvailabilityCheck?.toIso8601String(),
     };
   }
 
@@ -44,6 +50,10 @@ class Domain {
       notifyBeforeExpiry: json['notifyBeforeExpiry'] != null
           ? Duration(seconds: json['notifyBeforeExpiry'] as int)
           : const Duration(hours: 1),
+      isAvailable: json['isAvailable'] as bool?,
+      lastAvailabilityCheck: json['lastAvailabilityCheck'] != null
+          ? DateTime.parse(json['lastAvailabilityCheck'] as String)
+          : null,
     );
   }
 
@@ -55,6 +65,8 @@ class Domain {
     DateTime? expiryDate,
     int? alarmId,
     Duration? notifyBeforeExpiry,
+    bool? isAvailable,
+    DateTime? lastAvailabilityCheck,
   }) {
     return Domain(
       id: id ?? this.id,
@@ -64,6 +76,8 @@ class Domain {
       expiryDate: expiryDate ?? this.expiryDate,
       alarmId: alarmId ?? this.alarmId,
       notifyBeforeExpiry: notifyBeforeExpiry ?? this.notifyBeforeExpiry,
+      isAvailable: isAvailable ?? this.isAvailable,
+      lastAvailabilityCheck: lastAvailabilityCheck ?? this.lastAvailabilityCheck,
     );
   }
 }

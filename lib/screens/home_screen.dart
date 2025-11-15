@@ -43,29 +43,36 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isLoading = true);
     try {
       final expiryDate = await RdapService.getDomainExpiry(domain.url);
+      final isAvailable = await RdapService.isDomainAvailable(domain.url);
       final updatedDomain = domain.copyWith(
         lastChecked: DateTime.now().toUtc(),
         expiryDate: expiryDate,
+        isAvailable: isAvailable,
+        lastAvailabilityCheck: DateTime.now().toUtc(),
       );
       await StorageService.updateDomain(updatedDomain);
       await _loadDomains();
       
       if (mounted) {
+        String message = '';
         if (expiryDate != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Domain checked successfully. Expires: ${_formatDate(expiryDate)}'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          message = 'Expires: ${_formatDate(expiryDate)}';
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Could not fetch expiration date from RDAP'),
-              backgroundColor: Colors.orange,
-            ),
-          );
+          message = 'Could not fetch expiration date';
         }
+        
+        if (isAvailable == true) {
+          message += '\n✓ Domain is AVAILABLE for registration';
+        } else if (isAvailable == false) {
+          message += '\n✗ Domain is registered';
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: isAvailable == true ? Colors.green : (expiryDate != null ? Colors.green : Colors.orange),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -171,6 +178,41 @@ class _HomeScreenState extends State<HomeScreen> {
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  if (domain.isAvailable == true)
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: Colors.green,
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'AVAILABLE for registration',
+                                          style: TextStyle(
+                                            color: Colors.green[700],
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  if (domain.isAvailable == false)
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.info_outline,
+                                          color: Colors.blue,
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Registered',
+                                          style: TextStyle(
+                                            color: Colors.blue[700],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   if (domain.expiryDate != null)
                                     Text(
                                       'Expires: ${_formatDate(domain.expiryDate!)}',
