@@ -34,8 +34,8 @@ class DomainCheckService {
       if (expiryDate != null) {
         final now = DateTime.now().toUtc();
         bool shouldNotify = false;
-        String message;
-        String title;
+        late String message;
+        late String title;
 
         // Check notification timing setting
         if (domain.notifyBeforeExpiry == Duration.zero) {
