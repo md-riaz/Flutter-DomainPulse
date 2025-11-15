@@ -107,34 +107,4 @@ class StorageService {
     domains.removeWhere((d) => d.id == id);
     await saveDomains(domains);
   }
-
-  static Future<String?> getNtfyTopic() async {
-    try {
-      final file = await _getSettingsFile();
-      if (!await file.exists()) {
-        return null;
-      }
-      final contents = await file.readAsString();
-      final Map<String, dynamic> settings = json.decode(contents);
-      return settings['ntfyTopic'] as String?;
-    } catch (e) {
-      debugPrint('Error loading ntfy topic: $e');
-      return null;
-    }
-  }
-
-  static Future<void> setNtfyTopic(String topic) async {
-    try {
-      final file = await _getSettingsFile();
-      Map<String, dynamic> settings = {};
-      if (await file.exists()) {
-        final contents = await file.readAsString();
-        settings = json.decode(contents);
-      }
-      settings['ntfyTopic'] = topic;
-      await file.writeAsString(json.encode(settings));
-    } catch (e) {
-      debugPrint('Error saving ntfy topic: $e');
-    }
-  }
 }

@@ -10,19 +10,13 @@ class DomainCheckService {
     await StorageService.init();
 
     final domains = await StorageService.getDomains();
-    final ntfyTopic = await StorageService.getNtfyTopic();
-
-    if (ntfyTopic == null) {
-      debugPrint('No ntfy topic configured');
-      return;
-    }
 
     for (final domain in domains) {
-      await _checkDomain(domain, ntfyTopic);
+      await _checkDomain(domain);
     }
   }
 
-  static Future<void> _checkDomain(Domain domain, String ntfyTopic) async {
+  static Future<void> _checkDomain(Domain domain) async {
     try {
       debugPrint('Checking domain: ${domain.url}');
       
@@ -58,7 +52,6 @@ class DomainCheckService {
           }
 
           await NotificationService.sendNotification(
-            ntfyTopic,
             title,
             message,
           );
