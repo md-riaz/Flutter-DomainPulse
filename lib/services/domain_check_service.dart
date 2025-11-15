@@ -33,24 +33,39 @@ class DomainCheckService {
       // Check if domain is expiring soon or expired (all in UTC)
       if (expiryDate != null) {
         final now = DateTime.now().toUtc();
-        final notifyThreshold = now.add(domain.notifyBeforeExpiry);
+        bool shouldNotify = false;
+        String message;
+        String title;
 
-        if (expiryDate.isBefore(notifyThreshold)) {
-          String message;
-          String title;
-          
+        // Check notification timing setting
+        if (domain.notifyBeforeExpiry == Duration.zero) {
+          // Only notify after expiration
           if (expiryDate.isBefore(now)) {
-            // Domain has expired
+            shouldNotify = true;
             final daysExpired = now.difference(expiryDate).inDays;
             title = 'Domain EXPIRED: ${domain.url}';
             message = 'Domain ${domain.url} expired ${daysExpired} day${daysExpired != 1 ? 's' : ''} ago on ${_formatDateTimeAsiaDhaka(expiryDate)}.';
-          } else {
-            // Domain expiring soon
-            final daysLeft = expiryDate.difference(now).inDays;
-            title = 'Domain expiring soon: ${domain.url}';
-            message = 'Domain ${domain.url} expires on ${_formatDateTimeAsiaDhaka(expiryDate)} (in $daysLeft day${daysLeft != 1 ? 's' : ''}).';
           }
+        } else {
+          // Notify before expiration (existing behavior)
+          final notifyThreshold = now.add(domain.notifyBeforeExpiry);
+          if (expiryDate.isBefore(notifyThreshold)) {
+            shouldNotify = true;
+            if (expiryDate.isBefore(now)) {
+              // Domain has expired
+              final daysExpired = now.difference(expiryDate).inDays;
+              title = 'Domain EXPIRED: ${domain.url}';
+              message = 'Domain ${domain.url} expired ${daysExpired} day${daysExpired != 1 ? 's' : ''} ago on ${_formatDateTimeAsiaDhaka(expiryDate)}.';
+            } else {
+              // Domain expiring soon
+              final daysLeft = expiryDate.difference(now).inDays;
+              title = 'Domain expiring soon: ${domain.url}';
+              message = 'Domain ${domain.url} expires on ${_formatDateTimeAsiaDhaka(expiryDate)} (in $daysLeft day${daysLeft != 1 ? 's' : ''}).';
+            }
+          }
+        }
 
+        if (shouldNotify) {
           await NotificationService.sendNotification(
             title,
             message,

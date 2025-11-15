@@ -18,7 +18,7 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _urlController;
   Duration _selectedInterval = const Duration(hours: 1);
-  Duration _notifyBeforeExpiry = const Duration(hours: 1);
+  Duration _notifyBeforeExpiry = Duration.zero; // Default to after expiration
   bool _isSaving = false;
 
   final List<Duration> _intervalOptions = [
@@ -29,6 +29,7 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
   ];
 
   final List<Duration> _notificationOptions = [
+    Duration.zero, // After expiration
     const Duration(minutes: 30),
     const Duration(hours: 1),
     const Duration(hours: 6),
@@ -65,7 +66,9 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
   }
 
   String _formatNotificationDuration(Duration duration) {
-    if (duration.inMinutes < 60) {
+    if (duration == Duration.zero) {
+      return 'After expiration';
+    } else if (duration.inMinutes < 60) {
       return '${duration.inMinutes} minutes before';
     } else if (duration.inHours < 24) {
       return '${duration.inHours} hour${duration.inHours > 1 ? 's' : ''} before';
@@ -238,14 +241,14 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Receive notification when domain is about to expire:',
+              'When to receive notification:',
               style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<Duration>(
               value: _notificationOptions.contains(_notifyBeforeExpiry)
                   ? _notifyBeforeExpiry
-                  : _notificationOptions[1],
+                  : _notificationOptions[0],
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.notifications_active),
                 border: OutlineInputBorder(),

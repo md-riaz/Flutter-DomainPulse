@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notifications =
@@ -21,15 +22,36 @@ class NotificationService {
 
     _initialized = true;
     debugPrint('Notification service initialized');
+    
+    // Request notification permission on Android 13+
+    await requestNotificationPermission();
   }
 
-  static Future<void> sendNotification(
+  static Future<bool> requestNotificationPermission() async {
+    final status = await Permission.notification.request();
+    debugPrint('Notification permission status: $status');
+    return status.isGranted;
+  }
+
+  static Future<bool> checkNotificationPermission() async {
+    final status = await Permission.notification.status;
+    return status.isGranted;
+  }
+
+  static Future<bool> sendNotification(
     String title,
     String message,
   ) async {
     try {
       if (!_initialized) {
         await initialize();
+      }
+
+      // Check if permission is granted
+      final hasPermission = await checkNotificationPermission();
+      if (!hasPermission) {
+        debugPrint('Notification permission not granted');
+        return false;
       }
 
       const androidDetails = AndroidNotificationDetails(
@@ -51,8 +73,10 @@ class NotificationService {
       );
 
       debugPrint('Local notification sent: $title');
+      return true;
     } catch (e) {
       debugPrint('Error sending notification: $e');
+      return false;
     }
   }
 }

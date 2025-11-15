@@ -12,14 +12,40 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _testNotification() async {
     try {
-      await NotificationService.sendNotification(
+      // Check permission first
+      final hasPermission = await NotificationService.checkNotificationPermission();
+      
+      if (!hasPermission) {
+        // Request permission
+        final granted = await NotificationService.requestNotificationPermission();
+        if (!granted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Notification permission denied. Please enable it in settings.'),
+                duration: Duration(seconds: 4),
+              ),
+            );
+          }
+          return;
+        }
+      }
+      
+      final success = await NotificationService.sendNotification(
         'Test Notification',
         'This is a test notification from DomainPulse',
       );
+      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Test notification sent successfully')),
-        );
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Test notification sent successfully')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to send notification. Check permissions.')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
