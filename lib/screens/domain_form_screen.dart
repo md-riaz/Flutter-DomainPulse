@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/domain.dart';
 import '../services/storage_service.dart';
 import '../services/alarm_service.dart';
+import '../services/notification_service.dart';
+import '../services/rdap_service.dart';
 
 class DomainFormScreen extends StatefulWidget {
   final Domain? domain;
@@ -16,6 +18,8 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _urlController;
   Duration _selectedInterval = const Duration(hours: 1);
+  Duration _notifyBeforeExpiry = const Duration(hours: 1);
+  bool _isSaving = false;
 
   final List<Duration> _intervalOptions = [
     const Duration(minutes: 15),
@@ -24,12 +28,23 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
     const Duration(days: 1),
   ];
 
+  final List<Duration> _notificationOptions = [
+    const Duration(minutes: 30),
+    const Duration(hours: 1),
+    const Duration(hours: 6),
+    const Duration(hours: 12),
+    const Duration(days: 1),
+    const Duration(days: 7),
+    const Duration(days: 30),
+  ];
+
   @override
   void initState() {
     super.initState();
     _urlController = TextEditingController(text: widget.domain?.url ?? '');
     if (widget.domain != null) {
       _selectedInterval = widget.domain!.checkInterval;
+      _notifyBeforeExpiry = widget.domain!.notifyBeforeExpiry;
     }
   }
 
@@ -49,19 +64,88 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
     }
   }
 
+  String _formatNotificationDuration(Duration duration) {
+    if (duration.inMinutes < 60) {
+      return '${duration.inMinutes} minutes before';
+    } else if (duration.inHours < 24) {
+      return '${duration.inHours} hour${duration.inHours > 1 ? 's' : ''} before';
+    } else {
+      return '${duration.inDays} day${duration.inDays > 1 ? 's' : ''} before';
+    }
+  }
+
   Future<void> _saveDomain() async {
-    if (_formKey.currentState!.validate()) {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      final url = _urlController.text.trim();
+      DateTime? expiryDate;
+
+      // For new domains, check if domain exists and has expiration date using RDAP
+      if (widget.domain == null) {
+        expiryDate = await RdapService.getDomainExpiry(url);
+        
+        if (expiryDate == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Could not fetch domain expiration date via RDAP. Please check the domain name is correct.'),
+                duration: Duration(seconds: 4),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          setState(() => _isSaving = false);
+          return;
+        }
+      }
+
       final domain = Domain(
         id: widget.domain?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        url: _urlController.text.trim(),
+        url: url,
         checkInterval: _selectedInterval,
-        lastChecked: widget.domain?.lastChecked,
-        expiryDate: widget.domain?.expiryDate,
+        lastChecked: widget.domain == null ? DateTime.now().toUtc() : widget.domain?.lastChecked,
+        expiryDate: expiryDate ?? widget.domain?.expiryDate,
         alarmId: widget.domain?.alarmId ?? StorageService.generateAlarmId(),
+        notifyBeforeExpiry: _notifyBeforeExpiry,
       );
 
       if (widget.domain == null) {
         await StorageService.addDomain(domain);
+        
+        // Send immediate notification about domain expiration (internally UTC, displayed in Asia/Dhaka)
+        if (expiryDate != null) {
+          final ntfyTopic = await StorageService.getNtfyTopic();
+          if (ntfyTopic != null) {
+            final now = DateTime.now().toUtc();
+            final daysUntilExpiry = expiryDate.difference(now).inDays;
+            // Convert to Asia/Dhaka time (UTC+6) for display
+            final dhakaTime = expiryDate.add(const Duration(hours: 6));
+            final expiryDateStr = '${dhakaTime.year}-${dhakaTime.month.toString().padLeft(2, '0')}-${dhakaTime.day.toString().padLeft(2, '0')} '
+                '${dhakaTime.hour.toString().padLeft(2, '0')}:${dhakaTime.minute.toString().padLeft(2, '0')} Asia/Dhaka';
+            
+            String message;
+            if (daysUntilExpiry < 0) {
+              final daysExpired = -daysUntilExpiry;
+              message = 'Domain $url was added. It expired $daysExpired day${daysExpired != 1 ? 's' : ''} ago on $expiryDateStr.';
+            } else if (daysUntilExpiry == 0) {
+              final hoursUntilExpiry = expiryDate.difference(now).inHours;
+              message = 'Domain $url was added. It expires today in $hoursUntilExpiry hour${hoursUntilExpiry != 1 ? 's' : ''} on $expiryDateStr!';
+            } else {
+              message = 'Domain $url was added. It expires on $expiryDateStr (in $daysUntilExpiry day${daysUntilExpiry != 1 ? 's' : ''}).';
+            }
+            
+            await NotificationService.sendNotification(
+              ntfyTopic,
+              'Domain Added',
+              message,
+            );
+          }
+        }
       } else {
         await StorageService.updateDomain(domain);
       }
@@ -75,6 +159,19 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
 
       if (mounted) {
         Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving domain: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
       }
     }
   }
@@ -139,15 +236,54 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
               },
             ),
             const SizedBox(height: 24),
+            Text(
+              'Notification Timing',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Receive notification when domain is about to expire:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<Duration>(
+              value: _notificationOptions.contains(_notifyBeforeExpiry)
+                  ? _notifyBeforeExpiry
+                  : _notificationOptions[1],
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.notifications_active),
+                border: OutlineInputBorder(),
+              ),
+              items: _notificationOptions.map((duration) {
+                return DropdownMenuItem(
+                  value: duration,
+                  child: Text(_formatNotificationDuration(duration)),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _notifyBeforeExpiry = value;
+                  });
+                }
+              },
+            ),
+            const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _saveDomain,
+              onPressed: _isSaving ? null : _saveDomain,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: Text(
-                widget.domain == null ? 'Add Domain' : 'Update Domain',
-                style: const TextStyle(fontSize: 16),
-              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(
+                      widget.domain == null ? 'Add Domain' : 'Update Domain',
+                      style: const TextStyle(fontSize: 16),
+                    ),
             ),
           ],
         ),

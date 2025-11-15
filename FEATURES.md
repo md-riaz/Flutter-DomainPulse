@@ -10,12 +10,13 @@
 
 ### 2. Expiry Date Tracking
 
-#### Automatic Detection
-- Attempts to parse expiry information from HTTP headers
+#### RDAP-Based Detection
+- Uses RDAP (Registration Data Access Protocol) for accurate domain expiration data
+- Queries RDAP API at rdap.org for authoritative expiration information
 - Updates automatically during scheduled checks
-- Simple and hands-free approach
+- All date/time handling done in UTC for consistency
 
-**Note**: Due to minimal dependency requirements, full WHOIS or SSL certificate checking is not implemented. The app uses HTTP headers to detect expiry information where available.
+**Technical Details**: The app uses RDAP, the modern standard for domain registration data, which provides accurate expiration dates directly from domain registries. This is more reliable than HTTP headers or WHOIS parsing.
 
 ### 3. Background Monitoring
 
@@ -41,36 +42,35 @@ Each domain can have its own check interval.
 - Subscribe to your topic at: https://ntfy.sh/your-topic-name
 
 #### Alert Triggers
-Notifications are sent when:
-- Domain expires in less than 1 hour
-- Domain has already expired
+Notifications are sent based on configurable timing per domain:
+- **Customizable Thresholds**: Set notification timing from 30 minutes to 30 days before expiry
+- **Pre-expiry Alerts**: Get notified with days, hours, or minutes remaining
+- **Post-expiry Alerts**: Get notified with time elapsed since expiration
 
 Alert messages include:
 - Domain name
-- Time remaining (if not yet expired)
-- Clear indication if already expired
+- Time remaining until expiry (e.g., "expires in 7 days")
+- Time elapsed since expiry (e.g., "expired 2 hours ago")
+- Clear, human-readable time formatting
 
-### 5. Installation Options
+### 5. Easy App Installation
 
-The home screen includes two buttons:
+The home screen includes a Play Store button:
 
-#### Install Ntfy Button
-- Quick access to install the ntfy.sh app from Play Store
-- Opens the ntfy.sh app page: `https://play.google.com/store/apps/details?id=io.heckel.ntfy`
+#### Install Ntfy from Play Store
+- One-tap access to install the ntfy.sh app from Google Play Store
+- Opens the ntfy.sh app page directly: `https://play.google.com/store/apps/details?id=io.heckel.ntfy`
 - Required for receiving push notifications on your device
-
-#### GitHub Releases APK
-- Downloads APK from GitHub Releases
-- URL format: `https://github.com/md-riaz/Flutter-DomainPulse/releases/download/v{VERSION}/DomainPulse-v{VERSION}.apk`
-- Version is automatically read from pubspec.yaml (currently 1.0.0)
+- Uses `url_launcher` package for seamless external app opening
 
 ## Technical Implementation
 
 ### Minimal Dependencies
 - `flutter` - Flutter SDK
 - `http` (^1.1.0) - HTTP requests for domain checks and notifications
-- `android_alarm_manager_plus` (^3.0.4) - Background alarm scheduling
+- `android_alarm_manager_plus` (^4.0.0) - Background alarm scheduling
 - `path_provider` (^2.1.1) - Proper Android storage access
+- `url_launcher` (^6.2.0) - Opening Play Store links
 
 ### Data Storage
 - Local file-based storage using JSON
@@ -96,7 +96,8 @@ Required Android permissions:
 2. **Add Domain**
    - Tap + button on home screen
    - Enter domain URL (e.g., example.com)
-   - Choose check interval
+   - Choose check interval (15m, 1h, 6h, 1d, or custom)
+   - Set notification timing (30m, 1h, 6h, 12h, 1d, 7d, or 30d before expiry)
    - Save
 
 3. **Monitor Domains**
@@ -112,7 +113,7 @@ Required Android permissions:
 
 ## Limitations
 
-1. **Expiry Detection**: HTTP header-based detection is limited and may not work for all domains.
+1. **RDAP Coverage**: While RDAP is widely supported, some legacy or specialized TLDs may not be available via rdap.org
 2. **Android Only**: Currently supports only Android platform.
 3. **Storage**: Local storage only, no cloud sync.
 4. **Alarms**: Exact alarm behavior may vary by Android version and device manufacturer.
@@ -120,8 +121,8 @@ Required Android permissions:
 ## Future Enhancements
 
 Potential improvements while maintaining minimal dependencies:
-- Better HTTP header parsing (Date, Last-Modified, etc.)
 - Notification history
 - Domain grouping/categories
 - Export/import domain list
 - Dark theme support
+- Multiple RDAP server fallbacks for better coverage
