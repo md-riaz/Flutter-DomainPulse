@@ -159,6 +159,7 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
           await NotificationService.sendNotification(
             'Domain Added',
             message,
+            type: NotificationType.expiry,
           );
         }
       } else {

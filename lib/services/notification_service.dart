@@ -40,8 +40,9 @@ class NotificationService {
 
   static Future<bool> sendNotification(
     String title,
-    String message,
-  ) async {
+    String message, {
+    NotificationType type = NotificationType.expiry,
+  }) async {
     try {
       if (!_initialized) {
         await initialize();
@@ -54,16 +55,26 @@ class NotificationService {
         return false;
       }
 
-      const androidDetails = AndroidNotificationDetails(
-        'domain_expiry_channel',
-        'Domain Expiry Notifications',
-        channelDescription: 'Notifications for domain expiration alerts',
-        importance: Importance.high,
-        priority: Priority.high,
-        icon: '@mipmap/ic_launcher',
-      );
+      // Use appropriate channel based on notification type
+      final androidDetails = type == NotificationType.expiry
+          ? const AndroidNotificationDetails(
+              'domain_expiry_channel',
+              'Domain Expiry Notifications',
+              channelDescription: 'Notifications for domain expiration alerts',
+              importance: Importance.high,
+              priority: Priority.high,
+              icon: '@mipmap/ic_launcher',
+            )
+          : const AndroidNotificationDetails(
+              'domain_availability_channel',
+              'Domain Availability Notifications',
+              channelDescription: 'Notifications for domain availability alerts',
+              importance: Importance.high,
+              priority: Priority.high,
+              icon: '@mipmap/ic_launcher',
+            );
 
-      const notificationDetails = NotificationDetails(android: androidDetails);
+      final notificationDetails = NotificationDetails(android: androidDetails);
 
       await _notifications.show(
         DateTime.now().millisecondsSinceEpoch ~/ 1000,
@@ -72,11 +83,16 @@ class NotificationService {
         notificationDetails,
       );
 
-      debugPrint('Local notification sent: $title');
+      debugPrint('Local notification sent: $title (${type.name})');
       return true;
     } catch (e) {
       debugPrint('Error sending notification: $e');
       return false;
     }
   }
+}
+
+enum NotificationType {
+  expiry,
+  availability,
 }
