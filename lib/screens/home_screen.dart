@@ -42,30 +42,59 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _checkDomain(Domain domain) async {
     setState(() => _isLoading = true);
     try {
-      final expiryDate = await RdapService.getDomainExpiry(domain.url);
+      DateTime? expiryDate;
+      bool? isAvailable;
+      
+      // Check expiry if monitoring expiry
+      if (domain.monitoringMode == MonitoringMode.expiryOnly || 
+          domain.monitoringMode == MonitoringMode.both) {
+        expiryDate = await RdapService.getDomainExpiry(domain.url);
+      }
+      
+      // Check availability if monitoring availability
+      if (domain.monitoringMode == MonitoringMode.availabilityOnly || 
+          domain.monitoringMode == MonitoringMode.both) {
+        isAvailable = await RdapService.isDomainAvailable(domain.url);
+      }
+      
       final updatedDomain = domain.copyWith(
         lastChecked: DateTime.now().toUtc(),
-        expiryDate: expiryDate,
+        expiryDate: expiryDate ?? domain.expiryDate,
+        isAvailable: isAvailable ?? domain.isAvailable,
+        lastAvailabilityCheck: isAvailable != null ? DateTime.now().toUtc() : domain.lastAvailabilityCheck,
       );
       await StorageService.updateDomain(updatedDomain);
       await _loadDomains();
       
       if (mounted) {
-        if (expiryDate != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Domain checked successfully. Expires: ${_formatDate(expiryDate)}'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Could not fetch expiration date from RDAP'),
-              backgroundColor: Colors.orange,
-            ),
-          );
+        String message = '';
+        
+        if (domain.monitoringMode == MonitoringMode.expiryOnly || 
+            domain.monitoringMode == MonitoringMode.both) {
+          if (expiryDate != null) {
+            message = 'Expires: ${_formatDate(expiryDate)}';
+          } else {
+            message = 'Could not fetch expiration date';
+          }
         }
+        
+        if (domain.monitoringMode == MonitoringMode.availabilityOnly || 
+            domain.monitoringMode == MonitoringMode.both) {
+          if (isAvailable == true) {
+            if (message.isNotEmpty) message += '\n';
+            message += '✓ Domain is AVAILABLE for registration';
+          } else if (isAvailable == false) {
+            if (message.isNotEmpty) message += '\n';
+            message += '✗ Domain is registered';
+          }
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: isAvailable == true ? Colors.green : (expiryDate != null ? Colors.green : Colors.orange),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -171,6 +200,41 @@ class _HomeScreenState extends State<HomeScreen> {
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  if (domain.isAvailable == true)
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: Colors.green,
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'AVAILABLE for registration',
+                                          style: TextStyle(
+                                            color: Colors.green[700],
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  if (domain.isAvailable == false)
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.info_outline,
+                                          color: Colors.blue,
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Registered',
+                                          style: TextStyle(
+                                            color: Colors.blue[700],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   if (domain.expiryDate != null)
                                     Text(
                                       'Expires: ${_formatDate(domain.expiryDate!)}',
@@ -185,6 +249,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                       'Last checked: ${_formatDate(domain.lastChecked!)}',
                                       style: Theme.of(context).textTheme.bodySmall,
                                     ),
+                                  Text(
+                                    'Mode: ${_formatMonitoringMode(domain.monitoringMode)}',
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
                                   Text(
                                     'Check interval: ${_formatInterval(domain.checkInterval)}',
                                     style: Theme.of(context).textTheme.bodySmall,
@@ -267,6 +335,17 @@ class _HomeScreenState extends State<HomeScreen> {
       return '${interval.inHours}h before expiry';
     } else {
       return '${interval.inDays}d before expiry';
+    }
+  }
+
+  String _formatMonitoringMode(MonitoringMode mode) {
+    switch (mode) {
+      case MonitoringMode.expiryOnly:
+        return 'Expiry only';
+      case MonitoringMode.availabilityOnly:
+        return 'Availability only';
+      case MonitoringMode.both:
+        return 'Expiry + Availability';
     }
   }
 }

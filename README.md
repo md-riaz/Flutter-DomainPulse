@@ -9,6 +9,7 @@ A Flutter Android app for tracking domain expiry dates with alarm-based backgrou
 - **Flexible Notifications**: Configurable alert timing per domain (30m, 1h, 6h, 12h, 1d, 7d, or 30d before expiry)
 - **Local Notifications**: Native Android notifications when domains are approaching expiry or have expired
 - **Expiry Tracking**: Uses RDAP (Registration Data Access Protocol) to fetch accurate domain expiration dates
+- **Domain Availability Check**: Monitor domain availability status to be the first to register when a domain becomes available
 
 ## Dependencies
 
@@ -48,13 +49,15 @@ mv build/app/outputs/flutter-apk/app-release.apk DomainPulse-v1.0.0.apk
 1. **Add Domains**: Tap the + button to add domains to monitor
 2. **Set Check Intervals**: Choose from 15m, 1h, 6h, 1d, or set a custom interval
 3. **Configure Alert Timing**: Set when to be notified (30m to 30 days before expiry)
-4. **Receive Alerts**: Get local notifications directly on your device
+4. **Monitor Availability**: Track domain registration status - see if domains are available for purchase
+5. **Receive Alerts**: Get local notifications directly on your device when domains expire or become available
 
 ## Notifications
 
 This app uses local Android notifications to alert you based on your configured timing:
 - When a domain is approaching expiry (configurable: 30m to 30 days before)
 - When a domain has already expired (with time elapsed information)
+- When a domain becomes available for registration (so you can register it before anyone else)
 
 Notifications are delivered directly to your device without requiring any external services.
 

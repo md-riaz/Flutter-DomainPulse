@@ -7,6 +7,7 @@
 - Edit existing domain configurations
 - Delete domains from monitoring
 - Manual domain check (refresh button)
+- Domain availability monitoring
 
 ### 2. Expiry Date Tracking
 
@@ -17,6 +18,22 @@
 - All date/time handling done in UTC for consistency
 
 **Technical Details**: The app uses RDAP, the modern standard for domain registration data, which provides accurate expiration dates directly from domain registries. This is more reliable than HTTP headers or WHOIS parsing.
+
+### 2.1 Domain Availability Check
+
+#### Real-Time Availability Monitoring
+- Checks if a domain is available for registration using RDAP
+- Monitors domain status changes (registered → available)
+- Visual indicators on the UI showing availability status
+- Automatic notifications when a domain becomes available
+
+**Use Case**: This feature is perfect for tracking domains that you want to register. When a domain expires and becomes available for registration, you'll be notified immediately so you can be the first to secure it.
+
+**Technical Details**: 
+- Uses RDAP response codes to determine availability
+- 404 response = Domain is available for registration
+- 200 response = Domain is currently registered
+- Status is checked alongside expiry date during background alarms
 
 ### 3. Background Monitoring
 
@@ -46,11 +63,13 @@ Notifications are sent based on configurable timing per domain:
 - **Customizable Thresholds**: Set notification timing from 30 minutes to 30 days before expiry
 - **Pre-expiry Alerts**: Get notified with days, hours, or minutes remaining
 - **Post-expiry Alerts**: Get notified with time elapsed since expiration
+- **Availability Alerts**: Get notified immediately when a domain becomes available for registration
 
 Alert messages include:
 - Domain name
 - Time remaining until expiry (e.g., "expires in 7 days")
 - Time elapsed since expiry (e.g., "expired 2 hours ago")
+- Domain availability status changes
 - Clear, human-readable time formatting
 
 ## Technical Implementation
@@ -90,12 +109,15 @@ Required Android permissions:
 2. **Monitor Domains**
    - View all domains on home screen
    - Domains expiring soon shown in red
+   - Available domains shown with green checkmark
+   - Registered domains shown with blue info badge
    - Manual refresh available per domain
    - Edit or delete as needed
 
 3. **Receive Alerts**
    - Receive local notifications directly on your device
    - Act on expiring domains before it's too late
+   - Get notified when domains become available to register them first
 
 4. **Test Notifications** (Optional)
    - Go to Settings
@@ -116,3 +138,5 @@ Potential improvements while maintaining minimal dependencies:
 - Export/import domain list
 - Dark theme support
 - Multiple RDAP server fallbacks for better coverage
+- Bulk domain availability checker
+- Domain price estimation integration

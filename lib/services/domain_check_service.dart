@@ -18,20 +18,41 @@ class DomainCheckService {
 
   static Future<void> _checkDomain(Domain domain) async {
     try {
-      debugPrint('Checking domain: ${domain.url}');
+      debugPrint('Checking domain: ${domain.url} (Mode: ${domain.monitoringMode.name})');
       
-      // Fetch domain expiry via RDAP
-      final expiryDate = await RdapService.getDomainExpiry(domain.url);
+      DateTime? expiryDate;
+      bool? isAvailable;
+      
+      // Fetch domain expiry via RDAP if monitoring expiry
+      if (domain.monitoringMode == MonitoringMode.expiryOnly || 
+          domain.monitoringMode == MonitoringMode.both) {
+        expiryDate = await RdapService.getDomainExpiry(domain.url);
+      }
+      
+      // Check domain availability if monitoring availability
+      if (domain.monitoringMode == MonitoringMode.availabilityOnly || 
+          domain.monitoringMode == MonitoringMode.both) {
+        isAvailable = await RdapService.isDomainAvailable(domain.url);
+      }
 
-      // Update domain with new check time and expiry
+      // Track if domain became available
+      final wasUnavailable = domain.isAvailable == false;
+      final isNowAvailable = isAvailable == true;
+
+      // Update domain with new check time, expiry, and availability
       final updatedDomain = domain.copyWith(
         lastChecked: DateTime.now().toUtc(),
-        expiryDate: expiryDate,
+        expiryDate: expiryDate ?? domain.expiryDate,
+        isAvailable: isAvailable ?? domain.isAvailable,
+        lastAvailabilityCheck: isAvailable != null ? DateTime.now().toUtc() : domain.lastAvailabilityCheck,
       );
       await StorageService.updateDomain(updatedDomain);
 
       // Check if domain is expiring soon or expired (all in UTC)
-      if (expiryDate != null) {
+      // Only check expiry notifications if monitoring expiry
+      if (expiryDate != null && 
+          (domain.monitoringMode == MonitoringMode.expiryOnly || 
+           domain.monitoringMode == MonitoringMode.both)) {
         final now = DateTime.now().toUtc();
         bool shouldNotify = false;
         late String message;
@@ -71,6 +92,17 @@ class DomainCheckService {
             message,
           );
         }
+      }
+
+      // Send notification if domain became available
+      // Only check availability notifications if monitoring availability
+      if (wasUnavailable && isNowAvailable && 
+          (domain.monitoringMode == MonitoringMode.availabilityOnly || 
+           domain.monitoringMode == MonitoringMode.both)) {
+        await NotificationService.sendNotification(
+          'Domain Available: ${domain.url}',
+          'Domain ${domain.url} is now available for registration! Act fast to secure it before someone else does.',
+        );
       }
 
       debugPrint('Domain check completed for ${domain.url}');
