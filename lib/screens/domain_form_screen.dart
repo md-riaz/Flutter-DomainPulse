@@ -18,7 +18,7 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _urlController;
   Duration _selectedInterval = const Duration(hours: 1);
-  Duration _notifyBeforeExpiry = const Duration(hours: 1);
+  Duration _notifyBeforeExpiry = const Duration(minutes: 30);
   bool _isSaving = false;
 
   final List<Duration> _intervalOptions = [
@@ -245,7 +245,7 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
             DropdownButtonFormField<Duration>(
               value: _notificationOptions.contains(_notifyBeforeExpiry)
                   ? _notifyBeforeExpiry
-                  : _notificationOptions[1],
+                  : _notificationOptions[0],
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.notifications_active),
                 border: OutlineInputBorder(),
