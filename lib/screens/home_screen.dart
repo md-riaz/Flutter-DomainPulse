@@ -175,7 +175,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemCount: _domains.length,
                         itemBuilder: (context, index) {
                           final domain = _domains[index];
-                          final isExpiringSoon = domain.expiryDate != null &&
+                          // Only check expiry warnings for domains monitoring expiry
+                          final isExpiringSoon = (domain.monitoringMode == MonitoringMode.expiryOnly || 
+                              domain.monitoringMode == MonitoringMode.both) &&
+                              domain.expiryDate != null &&
                               domain.expiryDate!
                                   .isBefore(DateTime.now().toUtc().add(domain.notifyBeforeExpiry));
 
@@ -200,7 +203,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  if (domain.isAvailable == true)
+                                  // Show availability status only for domains monitoring availability
+                                  if ((domain.monitoringMode == MonitoringMode.availabilityOnly || 
+                                      domain.monitoringMode == MonitoringMode.both) && 
+                                      domain.isAvailable == true)
                                     Row(
                                       children: [
                                         const Icon(
@@ -218,7 +224,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                       ],
                                     ),
-                                  if (domain.isAvailable == false)
+                                  if ((domain.monitoringMode == MonitoringMode.availabilityOnly || 
+                                      domain.monitoringMode == MonitoringMode.both) && 
+                                      domain.isAvailable == false)
                                     Row(
                                       children: [
                                         const Icon(
@@ -235,7 +243,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                       ],
                                     ),
-                                  if (domain.expiryDate != null)
+                                  // Show expiry date only for domains monitoring expiry
+                                  if ((domain.monitoringMode == MonitoringMode.expiryOnly || 
+                                      domain.monitoringMode == MonitoringMode.both) && 
+                                      domain.expiryDate != null)
                                     Text(
                                       'Expires: ${_formatDate(domain.expiryDate!)}',
                                       style: TextStyle(

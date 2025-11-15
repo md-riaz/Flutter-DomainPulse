@@ -90,6 +90,7 @@ class DomainCheckService {
           await NotificationService.sendNotification(
             title,
             message,
+            type: NotificationType.expiry,
           );
         }
       }
@@ -102,6 +103,7 @@ class DomainCheckService {
         await NotificationService.sendNotification(
           'Domain Available: ${domain.url}',
           'Domain ${domain.url} is now available for registration! Act fast to secure it before someone else does.',
+          type: NotificationType.availability,
         );
       }
 
