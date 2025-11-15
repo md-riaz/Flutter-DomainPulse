@@ -190,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     style: Theme.of(context).textTheme.bodySmall,
                                   ),
                                   Text(
-                                    'Notify: ${_formatInterval(domain.notifyBeforeExpiry)} before expiry',
+                                    'Notify: ${_formatNotificationTiming(domain.notifyBeforeExpiry)}',
                                     style: Theme.of(context).textTheme.bodySmall,
                                   ),
                                 ],
@@ -242,8 +242,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
-        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    // Convert UTC to local time
+    final localDate = date.toLocal();
+    return '${localDate.year}-${localDate.month.toString().padLeft(2, '0')}-${localDate.day.toString().padLeft(2, '0')} '
+        '${localDate.hour.toString().padLeft(2, '0')}:${localDate.minute.toString().padLeft(2, '0')}';
   }
 
   String _formatInterval(Duration interval) {
@@ -253,6 +255,18 @@ class _HomeScreenState extends State<HomeScreen> {
       return '${interval.inHours}h';
     } else {
       return '${interval.inDays}d';
+    }
+  }
+
+  String _formatNotificationTiming(Duration interval) {
+    if (interval == Duration.zero) {
+      return 'after expiry';
+    } else if (interval.inMinutes < 60) {
+      return '${interval.inMinutes}m before expiry';
+    } else if (interval.inHours < 24) {
+      return '${interval.inHours}h before expiry';
+    } else {
+      return '${interval.inDays}d before expiry';
     }
   }
 }
