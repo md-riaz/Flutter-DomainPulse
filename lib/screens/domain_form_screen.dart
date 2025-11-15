@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import '../models/domain.dart';
 import '../services/storage_service.dart';
 import '../services/alarm_service.dart';
+import '../services/notification_service.dart';
 
 class DomainFormScreen extends StatefulWidget {
   final Domain? domain;
@@ -17,6 +19,7 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
   late TextEditingController _urlController;
   Duration _selectedInterval = const Duration(hours: 1);
   Duration _notifyBeforeExpiry = const Duration(hours: 1);
+  bool _isSaving = false;
 
   final List<Duration> _intervalOptions = [
     const Duration(minutes: 15),
@@ -72,19 +75,95 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
   }
 
   Future<void> _saveDomain() async {
-    if (_formKey.currentState!.validate()) {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      final url = _urlController.text.trim();
+      DateTime? expiryDate;
+
+      // For new domains, check if domain exists and has expiration date
+      if (widget.domain == null) {
+        try {
+          final response = await http.head(
+            Uri.parse('https://$url'),
+            headers: {'User-Agent': 'DomainPulse/1.0'},
+          ).timeout(const Duration(seconds: 10));
+
+          final expires = response.headers['expires'];
+          if (expires != null) {
+            expiryDate = DateTime.tryParse(expires);
+          }
+
+          if (expiryDate == null) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Domain does not have an expiration date in headers. Please check the domain URL.'),
+                  duration: Duration(seconds: 4),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+            setState(() => _isSaving = false);
+            return;
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to check domain: $e\nPlease verify the domain exists and is accessible.'),
+                duration: const Duration(seconds: 4),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          setState(() => _isSaving = false);
+          return;
+        }
+      }
+
       final domain = Domain(
         id: widget.domain?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        url: _urlController.text.trim(),
+        url: url,
         checkInterval: _selectedInterval,
-        lastChecked: widget.domain?.lastChecked,
-        expiryDate: widget.domain?.expiryDate,
+        lastChecked: widget.domain == null ? DateTime.now() : widget.domain?.lastChecked,
+        expiryDate: expiryDate ?? widget.domain?.expiryDate,
         alarmId: widget.domain?.alarmId ?? StorageService.generateAlarmId(),
         notifyBeforeExpiry: _notifyBeforeExpiry,
       );
 
       if (widget.domain == null) {
         await StorageService.addDomain(domain);
+        
+        // Send immediate notification about domain expiration
+        if (expiryDate != null) {
+          final ntfyTopic = await StorageService.getNtfyTopic();
+          if (ntfyTopic != null) {
+            final now = DateTime.now();
+            final daysUntilExpiry = expiryDate.difference(now).inDays;
+            
+            String message;
+            if (daysUntilExpiry < 0) {
+              final daysExpired = -daysUntilExpiry;
+              message = 'Domain $url was added. It expired $daysExpired day${daysExpired != 1 ? 's' : ''} ago!';
+            } else if (daysUntilExpiry == 0) {
+              final hoursUntilExpiry = expiryDate.difference(now).inHours;
+              message = 'Domain $url was added. It expires in $hoursUntilExpiry hour${hoursUntilExpiry != 1 ? 's' : ''}!';
+            } else {
+              message = 'Domain $url was added. It will expire in $daysUntilExpiry day${daysUntilExpiry != 1 ? 's' : ''}.';
+            }
+            
+            await NotificationService.sendNotification(
+              ntfyTopic,
+              'Domain Added',
+              message,
+            );
+          }
+        }
       } else {
         await StorageService.updateDomain(domain);
       }
@@ -98,6 +177,19 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
 
       if (mounted) {
         Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving domain: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
       }
     }
   }
@@ -196,14 +288,20 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _saveDomain,
+              onPressed: _isSaving ? null : _saveDomain,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: Text(
-                widget.domain == null ? 'Add Domain' : 'Update Domain',
-                style: const TextStyle(fontSize: 16),
-              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(
+                      widget.domain == null ? 'Add Domain' : 'Update Domain',
+                      style: const TextStyle(fontSize: 16),
+                    ),
             ),
           ],
         ),
