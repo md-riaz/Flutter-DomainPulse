@@ -14,6 +14,7 @@ A Flutter Android app for tracking domain expiry dates with alarm-based backgrou
 
 This app uses minimal dependencies:
 - `flutter` - Flutter SDK
+- `http` (^1.1.0) - For RDAP domain checking
 - `android_alarm_manager_plus` (^4.0.0) - For background alarm scheduling
 - `path_provider` (^2.1.1) - For proper Android storage access
 - `url_launcher` (^6.2.0) - For opening URLs

@@ -57,6 +57,7 @@ Alert messages include:
 
 ### Minimal Dependencies
 - `flutter` - Flutter SDK
+- `http` (^1.1.0) - HTTP requests for RDAP domain checking
 - `android_alarm_manager_plus` (^4.0.0) - Background alarm scheduling
 - `path_provider` (^2.1.1) - Proper Android storage access
 - `url_launcher` (^6.2.0) - Opening URLs
