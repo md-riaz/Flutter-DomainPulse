@@ -8,7 +8,7 @@ A Flutter Android app for tracking domain expiry dates with alarm-based backgrou
 - **Background Monitoring**: Automatic alarm-based checks at configurable intervals (15m, 1h, 6h, 1d, or custom)
 - **Flexible Notifications**: Configurable alert timing per domain (30m, 1h, 6h, 12h, 1d, 7d, or 30d before expiry)
 - **Push Notifications**: Alerts via ntfy.sh when domains are approaching expiry or have expired
-- **Expiry Tracking**: Parses expiry dates from HTTP headers
+- **Expiry Tracking**: Uses RDAP (Registration Data Access Protocol) to fetch accurate domain expiration dates
 - **Easy App Installation**: Direct Play Store link to install ntfy.sh app for receiving push notifications
 
 ## Dependencies

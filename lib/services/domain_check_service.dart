@@ -1,7 +1,7 @@
-import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'storage_service.dart';
 import 'notification_service.dart';
+import 'rdap_service.dart';
 import '../models/domain.dart';
 
 class DomainCheckService {
@@ -26,56 +26,40 @@ class DomainCheckService {
     try {
       debugPrint('Checking domain: ${domain.url}');
       
-      // Perform HEAD request to check domain
-      final response = await http.head(
-        Uri.parse('https://${domain.url}'),
-        headers: {'User-Agent': 'DomainPulse/1.0'},
-      ).timeout(const Duration(seconds: 10));
-
-      // Parse expiry date from headers
-      DateTime? expiryDate;
-      final expires = response.headers['expires'];
-      if (expires != null) {
-        expiryDate = DateTime.tryParse(expires);
-      }
+      // Fetch domain expiry via RDAP
+      final expiryDate = await RdapService.getDomainExpiry(domain.url);
 
       // Update domain with new check time and expiry
       final updatedDomain = domain.copyWith(
-        lastChecked: DateTime.now(),
+        lastChecked: DateTime.now().toUtc(),
         expiryDate: expiryDate,
       );
       await StorageService.updateDomain(updatedDomain);
 
-      // Check if domain is expiring soon or expired
+      // Check if domain is expiring soon or expired (all in UTC)
       if (expiryDate != null) {
-        final now = DateTime.now();
+        final now = DateTime.now().toUtc();
         final notifyThreshold = now.add(domain.notifyBeforeExpiry);
 
         if (expiryDate.isBefore(notifyThreshold)) {
           String message;
+          String title;
+          
           if (expiryDate.isBefore(now)) {
-            final timeExpired = now.difference(expiryDate);
-            if (timeExpired.inDays > 0) {
-              message = 'Domain ${domain.url} expired ${timeExpired.inDays} day(s) ago!';
-            } else if (timeExpired.inHours > 0) {
-              message = 'Domain ${domain.url} expired ${timeExpired.inHours} hour(s) ago!';
-            } else {
-              message = 'Domain ${domain.url} has expired!';
-            }
+            // Domain has expired
+            final daysExpired = now.difference(expiryDate).inDays;
+            title = 'Domain EXPIRED: ${domain.url}';
+            message = 'Domain ${domain.url} expired ${daysExpired} day${daysExpired != 1 ? 's' : ''} ago on ${_formatDate(expiryDate)} UTC.';
           } else {
-            final timeLeft = expiryDate.difference(now);
-            if (timeLeft.inDays > 0) {
-              message = 'Domain ${domain.url} expires in ${timeLeft.inDays} day(s)!';
-            } else if (timeLeft.inHours > 0) {
-              message = 'Domain ${domain.url} expires in ${timeLeft.inHours} hour(s)!';
-            } else {
-              message = 'Domain ${domain.url} expires in ${timeLeft.inMinutes} minute(s)!';
-            }
+            // Domain expiring soon
+            final daysLeft = expiryDate.difference(now).inDays;
+            title = 'Domain expiring soon: ${domain.url}';
+            message = 'Domain ${domain.url} expires on ${_formatDate(expiryDate)} UTC (in $daysLeft day${daysLeft != 1 ? 's' : ''}).';
           }
 
           await NotificationService.sendNotification(
             ntfyTopic,
-            'Domain Expiry Alert',
+            title,
             message,
           );
         }
@@ -85,5 +69,9 @@ class DomainCheckService {
     } catch (e) {
       debugPrint('Error checking domain ${domain.url}: $e');
     }
+  }
+
+  static String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }

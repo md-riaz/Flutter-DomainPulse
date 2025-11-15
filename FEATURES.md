@@ -10,12 +10,13 @@
 
 ### 2. Expiry Date Tracking
 
-#### Automatic Detection
-- Attempts to parse expiry information from HTTP headers
+#### RDAP-Based Detection
+- Uses RDAP (Registration Data Access Protocol) for accurate domain expiration data
+- Queries RDAP API at rdap.org for authoritative expiration information
 - Updates automatically during scheduled checks
-- Simple and hands-free approach
+- All date/time handling done in UTC for consistency
 
-**Note**: Due to minimal dependency requirements, full WHOIS or SSL certificate checking is not implemented. The app uses HTTP headers to detect expiry information where available.
+**Technical Details**: The app uses RDAP, the modern standard for domain registration data, which provides accurate expiration dates directly from domain registries. This is more reliable than HTTP headers or WHOIS parsing.
 
 ### 3. Background Monitoring
 
@@ -112,7 +113,7 @@ Required Android permissions:
 
 ## Limitations
 
-1. **Expiry Detection**: HTTP header-based detection is limited and may not work for all domains.
+1. **RDAP Coverage**: While RDAP is widely supported, some legacy or specialized TLDs may not be available via rdap.org
 2. **Android Only**: Currently supports only Android platform.
 3. **Storage**: Local storage only, no cloud sync.
 4. **Alarms**: Exact alarm behavior may vary by Android version and device manufacturer.
@@ -120,8 +121,8 @@ Required Android permissions:
 ## Future Enhancements
 
 Potential improvements while maintaining minimal dependencies:
-- Better HTTP header parsing (Date, Last-Modified, etc.)
 - Notification history
 - Domain grouping/categories
 - Export/import domain list
 - Dark theme support
+- Multiple RDAP server fallbacks for better coverage

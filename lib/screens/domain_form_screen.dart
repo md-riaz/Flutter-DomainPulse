@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import '../models/domain.dart';
 import '../services/storage_service.dart';
 import '../services/alarm_service.dart';
 import '../services/notification_service.dart';
+import '../services/rdap_service.dart';
 
 class DomainFormScreen extends StatefulWidget {
   final Domain? domain;
@@ -85,39 +85,17 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
       final url = _urlController.text.trim();
       DateTime? expiryDate;
 
-      // For new domains, check if domain exists and has expiration date
+      // For new domains, check if domain exists and has expiration date using RDAP
       if (widget.domain == null) {
-        try {
-          final response = await http.head(
-            Uri.parse('https://$url'),
-            headers: {'User-Agent': 'DomainPulse/1.0'},
-          ).timeout(const Duration(seconds: 10));
-
-          final expires = response.headers['expires'];
-          if (expires != null) {
-            expiryDate = DateTime.tryParse(expires);
-          }
-
-          if (expiryDate == null) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Domain does not have an expiration date in headers. Please check the domain URL.'),
-                  duration: Duration(seconds: 4),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
-            setState(() => _isSaving = false);
-            return;
-          }
-        } catch (e) {
+        expiryDate = await RdapService.getDomainExpiry(url);
+        
+        if (expiryDate == null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to check domain: $e\nPlease verify the domain exists and is accessible.'),
-                duration: const Duration(seconds: 4),
-                backgroundColor: Colors.red,
+              const SnackBar(
+                content: Text('Could not fetch domain expiration date via RDAP. Please check the domain name is correct.'),
+                duration: Duration(seconds: 4),
+                backgroundColor: Colors.orange,
               ),
             );
           }
@@ -130,7 +108,7 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
         id: widget.domain?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         url: url,
         checkInterval: _selectedInterval,
-        lastChecked: widget.domain == null ? DateTime.now() : widget.domain?.lastChecked,
+        lastChecked: widget.domain == null ? DateTime.now().toUtc() : widget.domain?.lastChecked,
         expiryDate: expiryDate ?? widget.domain?.expiryDate,
         alarmId: widget.domain?.alarmId ?? StorageService.generateAlarmId(),
         notifyBeforeExpiry: _notifyBeforeExpiry,
@@ -139,22 +117,23 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
       if (widget.domain == null) {
         await StorageService.addDomain(domain);
         
-        // Send immediate notification about domain expiration
+        // Send immediate notification about domain expiration (UTC-based)
         if (expiryDate != null) {
           final ntfyTopic = await StorageService.getNtfyTopic();
           if (ntfyTopic != null) {
-            final now = DateTime.now();
+            final now = DateTime.now().toUtc();
             final daysUntilExpiry = expiryDate.difference(now).inDays;
+            final expiryDateStr = '${expiryDate.year}-${expiryDate.month.toString().padLeft(2, '0')}-${expiryDate.day.toString().padLeft(2, '0')}';
             
             String message;
             if (daysUntilExpiry < 0) {
               final daysExpired = -daysUntilExpiry;
-              message = 'Domain $url was added. It expired $daysExpired day${daysExpired != 1 ? 's' : ''} ago!';
+              message = 'Domain $url was added. It expired $daysExpired day${daysExpired != 1 ? 's' : ''} ago on $expiryDateStr UTC.';
             } else if (daysUntilExpiry == 0) {
               final hoursUntilExpiry = expiryDate.difference(now).inHours;
-              message = 'Domain $url was added. It expires in $hoursUntilExpiry hour${hoursUntilExpiry != 1 ? 's' : ''}!';
+              message = 'Domain $url was added. It expires today in $hoursUntilExpiry hour${hoursUntilExpiry != 1 ? 's' : ''} on $expiryDateStr UTC!';
             } else {
-              message = 'Domain $url was added. It will expire in $daysUntilExpiry day${daysUntilExpiry != 1 ? 's' : ''}.';
+              message = 'Domain $url was added. It expires on $expiryDateStr UTC (in $daysUntilExpiry day${daysUntilExpiry != 1 ? 's' : ''}).';
             }
             
             await NotificationService.sendNotification(

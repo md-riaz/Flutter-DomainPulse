@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:convert';
 import '../models/domain.dart';
 import '../services/storage_service.dart';
 import '../services/alarm_service.dart';
+import '../services/rdap_service.dart';
 import '../constants.dart';
 import 'domain_form_screen.dart';
 import 'settings_screen.dart';
@@ -44,15 +43,30 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _checkDomain(Domain domain) async {
     setState(() => _isLoading = true);
     try {
-      final response = await http.head(Uri.parse('https://${domain.url}'));
-      final expiry = response.headers['expires'];
-      if (expiry != null) {
-        final updatedDomain = domain.copyWith(
-          lastChecked: DateTime.now(),
-          expiryDate: DateTime.tryParse(expiry),
-        );
-        await StorageService.updateDomain(updatedDomain);
-        await _loadDomains();
+      final expiryDate = await RdapService.getDomainExpiry(domain.url);
+      final updatedDomain = domain.copyWith(
+        lastChecked: DateTime.now().toUtc(),
+        expiryDate: expiryDate,
+      );
+      await StorageService.updateDomain(updatedDomain);
+      await _loadDomains();
+      
+      if (mounted) {
+        if (expiryDate != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Domain checked successfully. Expires: ${_formatDate(expiryDate)}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not fetch expiration date from RDAP'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
