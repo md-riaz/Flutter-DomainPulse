@@ -148,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           final domain = _domains[index];
                           final isExpiringSoon = domain.expiryDate != null &&
                               domain.expiryDate!
-                                  .isBefore(DateTime.now().add(domain.notifyBeforeExpiry));
+                                  .isBefore(DateTime.now().toUtc().add(domain.notifyBeforeExpiry));
 
                           return Card(
                             margin: const EdgeInsets.symmetric(
