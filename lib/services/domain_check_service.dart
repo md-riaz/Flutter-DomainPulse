@@ -49,12 +49,12 @@ class DomainCheckService {
             // Domain has expired
             final daysExpired = now.difference(expiryDate).inDays;
             title = 'Domain EXPIRED: ${domain.url}';
-            message = 'Domain ${domain.url} expired ${daysExpired} day${daysExpired != 1 ? 's' : ''} ago on ${_formatDate(expiryDate)} UTC.';
+            message = 'Domain ${domain.url} expired ${daysExpired} day${daysExpired != 1 ? 's' : ''} ago on ${_formatDateTimeAsiaDhaka(expiryDate)}.';
           } else {
             // Domain expiring soon
             final daysLeft = expiryDate.difference(now).inDays;
             title = 'Domain expiring soon: ${domain.url}';
-            message = 'Domain ${domain.url} expires on ${_formatDate(expiryDate)} UTC (in $daysLeft day${daysLeft != 1 ? 's' : ''}).';
+            message = 'Domain ${domain.url} expires on ${_formatDateTimeAsiaDhaka(expiryDate)} (in $daysLeft day${daysLeft != 1 ? 's' : ''}).';
           }
 
           await NotificationService.sendNotification(
@@ -73,5 +73,17 @@ class DomainCheckService {
 
   static String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Convert UTC DateTime to Asia/Dhaka timezone (UTC+6) for display
+  static DateTime _toAsiaDhaka(DateTime utcDate) {
+    return utcDate.add(const Duration(hours: 6));
+  }
+
+  /// Format date with time in Asia/Dhaka timezone
+  static String _formatDateTimeAsiaDhaka(DateTime utcDate) {
+    final dhakaTime = _toAsiaDhaka(utcDate);
+    return '${dhakaTime.year}-${dhakaTime.month.toString().padLeft(2, '0')}-${dhakaTime.day.toString().padLeft(2, '0')} '
+           '${dhakaTime.hour.toString().padLeft(2, '0')}:${dhakaTime.minute.toString().padLeft(2, '0')} Asia/Dhaka';
   }
 }
