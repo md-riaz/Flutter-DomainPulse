@@ -78,8 +78,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'DomainPulse sends local notifications directly on this device '
-                    'when domains are about to expire, have expired, or become available for registration.',
+                    'DomainPulse sends local notifications directly on this device:\n'
+                    '• Expiry alerts: Based on your configured timing (before/after expiration)\n'
+                    '• Availability alerts: Immediately when a domain becomes available',
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
@@ -108,7 +109,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 8),
                   const Text(
                     'DomainPulse monitors domain expiry dates and availability status. '
-                    'It sends notifications when domains are about to expire, have expired, or become available for registration.',
+                    'Choose monitoring mode per domain: expiry only, availability only, or both.',
                   ),
                   const SizedBox(height: 16),
                   const ListTile(
@@ -125,8 +126,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const ListTile(
                     leading: Icon(Icons.notifications_active),
-                    title: Text('Alert Threshold'),
-                    subtitle: Text('Configurable per domain (30m to 30 days before expiry)'),
+                    title: Text('Notification Settings'),
+                    subtitle: Text('Expiry: Configurable per domain (30m to 30 days before/after)\nAvailability: Immediate alerts'),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ],

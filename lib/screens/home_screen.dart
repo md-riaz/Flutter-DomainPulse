@@ -268,10 +268,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                     'Check interval: ${_formatInterval(domain.checkInterval)}',
                                     style: Theme.of(context).textTheme.bodySmall,
                                   ),
-                                  Text(
-                                    'Notify: ${_formatNotificationTiming(domain.notifyBeforeExpiry)}',
-                                    style: Theme.of(context).textTheme.bodySmall,
-                                  ),
+                                  // Only show notification timing for domains monitoring expiry
+                                  if (domain.monitoringMode == MonitoringMode.expiryOnly ||
+                                      domain.monitoringMode == MonitoringMode.both)
+                                    Text(
+                                      'Expiry notify: ${_formatNotificationTiming(domain.notifyBeforeExpiry)}',
+                                      style: Theme.of(context).textTheme.bodySmall,
+                                    ),
                                 ],
                               ),
                               trailing: Row(
