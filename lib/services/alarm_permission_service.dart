@@ -58,6 +58,10 @@ class AlarmPermissionService {
 
   /// Check if the device requires alarm permission (Android 12+)
   /// Returns true if running on Android 12+ (API 31+)
+  /// 
+  /// Note: This uses exception-based detection which is the recommended approach
+  /// for permission_handler package, as it automatically handles API level differences
+  /// without requiring explicit Android SDK version checks.
   static Future<bool> requiresAlarmPermission() async {
     try {
       // Try to get the permission status
