@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'domain_check_service.dart';
 import 'notification_service.dart';
 import 'debug_log_service.dart';
+import 'storage_service.dart';
 import 'alarm_diagnostic_service.dart';
 import 'alarm_permission_service.dart';
 import '../models/debug_log.dart';
@@ -139,6 +140,16 @@ This permission is required on Android 12+ (API 31+) for exact alarm scheduling.
       WidgetsFlutterBinding.ensureInitialized();
       debugPrint('Flutter binding initialized');
       
+      // Initialize storage service first (required for debug logs and domain checks)
+      debugPrint('Initializing storage service...');
+      await StorageService.init();
+      debugPrint('Storage service initialized');
+      
+      // Initialize debug log service
+      debugPrint('Initializing debug log service...');
+      await DebugLogService.init();
+      debugPrint('Debug log service initialized');
+      
       // Initialize notification service for background notifications
       debugPrint('Initializing notification service...');
       await NotificationService.initialize();
@@ -152,6 +163,8 @@ This permission is required on Android 12+ (API 31+) for exact alarm scheduling.
         'Background alarm triggered',
         details: '''Alarm callback started at ${DateTime.now().toUtc()}
 Flutter binding: Initialized
+Storage service: Initialized
+Debug log service: Initialized
 Notification service: Initialized
 About to check domains...
 
@@ -163,7 +176,7 @@ If you DON\'T see this message, check:
       );
       debugPrint('Log entry added for alarm trigger');
       
-      // Check all domains (this will initialize StorageService internally)
+      // Check all domains (StorageService already initialized)
       debugPrint('Starting domain check cycle...');
       await DomainCheckService.checkAllDomains();
       debugPrint('Domain check cycle completed');
@@ -183,6 +196,8 @@ If you DON\'T see this message, check:
       
       // Log the error - this is important for debugging
       try {
+        // Ensure debug log service is initialized before trying to log
+        await DebugLogService.init();
         await DebugLogService.addLog(
           LogLevel.error,
           'Background alarm failed',

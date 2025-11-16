@@ -13,11 +13,16 @@ class DebugLogService {
     if (_dataPath == null) {
       final directory = await getApplicationDocumentsDirectory();
       _dataPath = directory.path;
+      debugPrint('DebugLogService initialized with path: $_dataPath');
     }
   }
 
   static Future<File> _getLogsFile() async {
+    // Always ensure initialization before accessing file
     await init();
+    if (_dataPath == null) {
+      throw Exception('DebugLogService: _dataPath is null after init()');
+    }
     return File('$_dataPath/$_logsFile');
   }
 

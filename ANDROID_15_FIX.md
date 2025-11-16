@@ -6,21 +6,26 @@ On Android 15 (API 35), users reported that even after granting notification and
 ## Root Causes
 1. **Missing USE_EXACT_ALARM permission**: Android 14+ introduced `USE_EXACT_ALARM` as an alternative to `SCHEDULE_EXACT_ALARM` that doesn't require user approval for non-clock apps
 2. **Missing FOREGROUND_SERVICE permission**: Android 14+ requires this permission for reliable background operations
-3. **No permission verification**: The app wasn't explicitly checking if alarm permission was granted before scheduling alarms
-4. **Insufficient debug logging**: The alarm callback didn't have enough logging to diagnose if it was executing
+3. **Missing USE_ALARM_ATTRIBUTES permission**: Android 15+ requires this permission for alarm scheduling attributes
+4. **No permission verification**: The app wasn't explicitly checking if alarm permission was granted before scheduling alarms
+5. **Insufficient debug logging**: The alarm callback didn't have enough logging to diagnose if it was executing
+6. **Service initialization in background**: StorageService and DebugLogService were not properly initialized in background alarm callback context
 
 ## Changes Made
 
 ### 1. AndroidManifest.xml
-Added two new permissions:
+Added three new permissions:
 - `USE_EXACT_ALARM`: Android 14+ permission that allows exact alarms without user approval
 - `FOREGROUND_SERVICE`: Required for Android 14+ background operations
+- `USE_ALARM_ATTRIBUTES`: Required for Android 15+ alarm scheduling attributes
 
 ### 2. Alarm Service (lib/services/alarm_service.dart)
 - **Permission check before scheduling**: Now verifies alarm permission is granted before scheduling
 - **Enhanced error messages**: Provides detailed, actionable guidance when permissions are missing
 - **Comprehensive callback logging**: Added extensive debug logs to the alarm callback to verify execution
 - **Permission request flow**: If permission isn't granted, tries to request it before scheduling
+- **Service initialization**: Explicitly initializes StorageService and DebugLogService at the start of alarm callback
+- **Enhanced background context**: All required services are now initialized before domain checks run
 
 ### 3. Main App (lib/main.dart)
 - **Await permission request**: Now waits for alarm permission request to complete before loading UI
@@ -30,10 +35,23 @@ Added two new permissions:
 - **Permission verification**: Diagnostics now check both alarm and notification permissions
 - **Detailed status messages**: Shows permission status with actionable steps if not granted
 
-### 5. Documentation
+### 5. Storage Service (lib/services/storage_service.dart)
+- **Nullable path**: Changed `_dataPath` from `late` to nullable to prevent uninitialized access
+- **Initialization guard**: Added check to prevent re-initialization
+- **Null safety**: Added null checks in file getter methods with descriptive error messages
+- **Background context**: Now properly handles initialization in background alarm callback
+
+### 6. Debug Log Service (lib/services/debug_log_service.dart)
+- **Always initialize**: Ensures `_dataPath` is initialized before file access
+- **Null safety**: Added null check after init() to throw descriptive error if initialization fails
+- **Debug logging**: Added debug print to track initialization path
+- **Background context**: Now properly initializes in background alarm callback to persist logs
+
+### 7. Documentation
 - Updated TROUBLESHOOTING.md with Android 15 specific guidance
 - Updated README.md to mention Android 15 support
 - Updated FEATURES.md with details about new permissions and fixes
+- Updated ANDROID_15_FIX.md with service initialization fixes
 
 ## How to Verify the Fix
 
@@ -60,6 +78,8 @@ After installing the updated app:
 3. You should now see:
    - "Background alarm triggered" (this is the key message!)
    - "Flutter binding: Initialized"
+   - "Storage service: Initialized"
+   - "Debug log service: Initialized"
    - "Notification service: Initialized"
    - "Starting domain check cycle"
    - "Domain check completed: [your-domain]"

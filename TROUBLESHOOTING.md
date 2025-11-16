@@ -26,7 +26,7 @@ Android 15 has the strictest requirements for background work and exact alarms:
 3. **Battery Optimization**: Go to **Settings** → **Battery** → **Battery optimization** → Find DomainPulse → Select **Don't optimize**
 4. **Background Restrictions**: Go to **Settings** → **Apps** → **DomainPulse** → **Battery** → Select **No restrictions** or **Unrestricted**
 
-**Critical for Android 15**: The app will now verify alarm permissions before scheduling. If you see permission warnings in debug logs, follow the instructions provided.
+**Critical for Android 15**: The app will now verify alarm permissions before scheduling. If you see permission warnings in debug logs, follow the instructions provided. Android 15 also requires USE_ALARM_ATTRIBUTES permission, which is automatically granted through the manifest.
 
 #### Android 14 (API 34)
 Android 14 introduced USE_EXACT_ALARM permission:
@@ -38,7 +38,7 @@ Android 14 introduced USE_EXACT_ALARM permission:
 5. Enable this permission
 6. Disable battery optimization (see Android 15 instructions above)
 
-**Why?** Android 14+ uses USE_EXACT_ALARM as an alternative to SCHEDULE_EXACT_ALARM. The app now supports both.
+**Why?** Android 14+ uses USE_EXACT_ALARM as an alternative to SCHEDULE_EXACT_ALARM. The app now supports both. Android 15+ also requires USE_ALARM_ATTRIBUTES for alarm scheduling attributes.
 
 #### Android 12-13 (API 31-33)
 Android 12 and 13 require explicit permission for exact alarms:
