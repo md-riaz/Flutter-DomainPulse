@@ -4,6 +4,7 @@ import '../services/storage_service.dart';
 import '../services/alarm_service.dart';
 import '../services/notification_service.dart';
 import '../services/rdap_service.dart';
+import '../services/alarm_permission_service.dart';
 
 class DomainFormScreen extends StatefulWidget {
   final Domain? domain;
@@ -82,6 +83,50 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
   Future<void> _saveDomain() async {
     if (!_formKey.currentState!.validate()) {
       return;
+    }
+
+    // Check alarm permission before saving
+    final hasAlarmPermission = await AlarmPermissionService.checkAlarmPermission();
+    if (!hasAlarmPermission && mounted) {
+      final shouldContinue = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Alarm Permission Required'),
+          content: const Text(
+            'This app requires alarm permission to schedule background domain checks. '
+            'Without this permission, automatic monitoring will not work.\n\n'
+            'Would you like to grant the permission now?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Skip'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await AlarmPermissionService.requestAlarmPermission();
+                if (context.mounted) {
+                  Navigator.pop(context, true);
+                }
+              },
+              child: const Text('Grant Permission'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldContinue == false) {
+        // User chose to skip, show a warning
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Warning: Background monitoring may not work without alarm permission'),
+              duration: Duration(seconds: 4),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
     }
 
     setState(() => _isSaving = true);
