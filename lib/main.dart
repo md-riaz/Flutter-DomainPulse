@@ -4,12 +4,18 @@ import 'screens/home_screen.dart';
 import 'services/storage_service.dart';
 import 'services/alarm_service.dart';
 import 'services/notification_service.dart';
+import 'services/alarm_permission_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AndroidAlarmManager.initialize();
   await StorageService.init();
   await NotificationService.initialize();
+  
+  // Request alarm permission on app startup (Android 12+ requirement)
+  // Run in background to avoid blocking UI thread
+  AlarmPermissionService.requestAlarmPermission();
+  
   runApp(const DomainPulseApp());
 }
 

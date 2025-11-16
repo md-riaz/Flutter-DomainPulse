@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
+import '../services/alarm_permission_service.dart';
 import '../constants.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -9,7 +10,78 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObserver {
+  String _alarmPermissionStatus = 'Checking...';
+  bool _alarmPermissionGranted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkAlarmPermission();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When app resumes from settings, check permission again
+    if (state == AppLifecycleState.resumed) {
+      _checkAlarmPermission();
+    }
+  }
+
+  Future<void> _checkAlarmPermission() async {
+    final granted = await AlarmPermissionService.checkAlarmPermission();
+    final message = await AlarmPermissionService.getPermissionStatusMessage();
+    setState(() {
+      _alarmPermissionGranted = granted;
+      _alarmPermissionStatus = message;
+    });
+  }
+
+  Future<void> _requestAlarmPermission() async {
+    final granted = await AlarmPermissionService.requestAlarmPermission();
+    
+    // Refresh the permission status
+    await _checkAlarmPermission();
+    
+    if (mounted) {
+      if (granted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Alarm permission granted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Alarm permission not granted. Please enable it in system settings.'),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _openAlarmSettings() async {
+    final opened = await AlarmPermissionService.openAlarmSettings();
+    
+    if (mounted && !opened) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open settings. Please check manually.'),
+        ),
+      );
+    }
+    // Permission status will be checked automatically when app resumes
+    // via didChangeAppLifecycleState
+  }
   Future<void> _testNotification() async {
     try {
       // Check permission first
@@ -66,6 +138,73 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Alarm Permission',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        _alarmPermissionGranted ? Icons.check_circle : Icons.warning,
+                        color: _alarmPermissionGranted ? Colors.green : Colors.orange,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _alarmPermissionStatus,
+                          style: TextStyle(
+                            color: _alarmPermissionGranted ? Colors.green[700] : Colors.orange[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (!_alarmPermissionGranted) ...[
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Background domain checks require alarm permission on Android 12+. '
+                      'Grant this permission to enable automatic monitoring.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _requestAlarmPermission,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Request Permission'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _openAlarmSettings,
+                            icon: const Icon(Icons.settings),
+                            label: const Text('Open Settings'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
