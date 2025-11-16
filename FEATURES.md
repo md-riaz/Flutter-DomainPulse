@@ -93,11 +93,16 @@ Alert messages include:
 
 ### Permissions
 Required Android permissions:
+- `INTERNET` - Network access for domain checks
 - `RECEIVE_BOOT_COMPLETED` - Reschedule alarms after reboot
 - `WAKE_LOCK` - Wake device for scheduled checks
-- `SCHEDULE_EXACT_ALARM` - Precise alarm timing
-- `POST_NOTIFICATIONS` - Show local notifications
+- `SCHEDULE_EXACT_ALARM` - Precise alarm timing (Android 12+)
+- `USE_EXACT_ALARM` - Alternative exact alarm permission (Android 14+, no user approval required)
+- `POST_NOTIFICATIONS` - Show local notifications (Android 13+)
 - `VIBRATE` - Notification vibration
+- `FOREGROUND_SERVICE` - Background operations (Android 14+)
+
+**Note**: The app now explicitly checks alarm permissions before scheduling and provides detailed error messages in debug logs if permissions are missing. This ensures compatibility with Android 12, 13, 14, and 15.
 
 ## User Workflow
 
@@ -194,6 +199,23 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed guide covering:
 - **Alarm Diagnostics**: Tap the medical kit icon (🏥) in the debug logs screen
 
 ## Critical Fixes
+
+### Android 15 Notification and Alarm Fix
+- **Issue**: On Android 15, alarms and notifications were not triggering even after granting permissions, and debug logs remained empty
+- **Root Causes**:
+  - Missing `USE_EXACT_ALARM` permission (Android 14+ alternative that doesn't require user approval)
+  - Missing `FOREGROUND_SERVICE` permission required for Android 14+ background operations
+  - No explicit verification that alarm permission was granted before scheduling alarms
+  - Insufficient debug logging in alarm callback to diagnose execution issues
+- **Fix**:
+  - Added `USE_EXACT_ALARM` permission to AndroidManifest.xml
+  - Added `FOREGROUND_SERVICE` permission to AndroidManifest.xml
+  - Updated alarm service to check and verify permissions before scheduling
+  - Added explicit permission request and verification in main.dart
+  - Enhanced alarm callback with comprehensive debug logging
+  - Updated diagnostics to check both alarm and notification permissions
+  - Provided detailed error messages with actionable steps when permissions are missing
+- **Result**: Alarms now work reliably on Android 15 with clear feedback about permission status
 
 ### RebootBroadcastReceiver Fix
 - **Issue**: RebootBroadcastReceiver was disabled in AndroidManifest.xml

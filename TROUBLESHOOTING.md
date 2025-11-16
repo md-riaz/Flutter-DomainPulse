@@ -18,8 +18,30 @@ If you don't see "Background alarm triggered" entries:
 
 ### 2. Android Version-Specific Issues
 
-#### Android 12+ (API 31+)
-Android 12 and higher require explicit permission for exact alarms:
+#### Android 15 (API 35)
+Android 15 has the strictest requirements for background work and exact alarms:
+
+1. **Alarm Permission**: Open **Settings** → **Apps** → **DomainPulse** → **Special app access** → **Alarms & reminders** and enable it
+2. **Notification Permission**: Go to **Settings** → **Apps** → **DomainPulse** → **Permissions** → **Notifications** and enable it
+3. **Battery Optimization**: Go to **Settings** → **Battery** → **Battery optimization** → Find DomainPulse → Select **Don't optimize**
+4. **Background Restrictions**: Go to **Settings** → **Apps** → **DomainPulse** → **Battery** → Select **No restrictions** or **Unrestricted**
+
+**Critical for Android 15**: The app will now verify alarm permissions before scheduling. If you see permission warnings in debug logs, follow the instructions provided.
+
+#### Android 14 (API 34)
+Android 14 introduced USE_EXACT_ALARM permission:
+
+1. Open **Settings** on your device
+2. Go to **Apps** → **DomainPulse**
+3. Tap **Permissions** or **Special app access**
+4. Look for **Alarms & reminders** or **Schedule exact alarms**
+5. Enable this permission
+6. Disable battery optimization (see Android 15 instructions above)
+
+**Why?** Android 14+ uses USE_EXACT_ALARM as an alternative to SCHEDULE_EXACT_ALARM. The app now supports both.
+
+#### Android 12-13 (API 31-33)
+Android 12 and 13 require explicit permission for exact alarms:
 
 1. Open **Settings** on your device
 2. Go to **Apps** → **DomainPulse**
@@ -30,7 +52,7 @@ Android 12 and higher require explicit permission for exact alarms:
 **Why?** Android 12+ restricts exact alarm scheduling for security/battery reasons. Apps must request this permission explicitly.
 
 #### Android 13+ (API 33+)
-Additional notification permission may be required:
+Additional notification permission is required:
 
 1. When you first add a domain, you should see a notification permission prompt
 2. If you denied it, go to **Settings** → **Apps** → **DomainPulse** → **Permissions** → **Notifications**

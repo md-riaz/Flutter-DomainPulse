@@ -13,8 +13,9 @@ void main() async {
   await NotificationService.initialize();
   
   // Request alarm permission on app startup (Android 12+ requirement)
-  // Run in background to avoid blocking UI thread
-  AlarmPermissionService.requestAlarmPermission();
+  // This is critical for Android 12+, 14+, and 15+ where exact alarms require permission
+  // We await this to ensure permission is handled before the app UI loads
+  await AlarmPermissionService.requestAlarmPermission();
   
   runApp(const DomainPulseApp());
 }

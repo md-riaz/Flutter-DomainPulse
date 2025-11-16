@@ -67,7 +67,7 @@ Notifications are delivered directly to your device without requiring any extern
 ## Troubleshooting
 
 If domain checks are not running at the scheduled intervals, see the comprehensive [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide which covers:
-- Android version-specific issues (12+, 13+)
+- Android version-specific issues (12+, 13+, 14+, 15)
 - Battery optimization settings for all major manufacturers
 - Common problems and solutions
 - Step-by-step diagnosis procedures
