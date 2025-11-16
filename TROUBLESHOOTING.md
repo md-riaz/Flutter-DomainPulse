@@ -1,5 +1,18 @@
 # DomainPulse Troubleshooting Guide
 
+## Recent Fix (v1.1.2+)
+
+**If you're experiencing issues with alarms and notifications not triggering**, this has been fixed in the latest version. The root cause was that the alarm callback function was implemented as a static method instead of a top-level function, which prevented the Android alarm manager from properly invoking it in the background isolate.
+
+### What was fixed:
+- ✅ Alarm callback is now a top-level function (required by `android_alarm_manager_plus`)
+- ✅ Background domain checks will now execute properly at scheduled intervals
+- ✅ Notifications will be sent when domains approach expiry or become available
+- ✅ Better error logging when notifications fail (e.g., missing permissions)
+
+### If you still have issues after updating:
+Make sure to check the sections below, especially the permission and battery optimization settings.
+
 ## Domain Checks Not Firing
 
 If your domain checks are not running at the scheduled intervals, follow these steps:
