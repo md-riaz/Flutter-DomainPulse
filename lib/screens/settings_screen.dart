@@ -10,14 +10,29 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObserver {
   String _alarmPermissionStatus = 'Checking...';
   bool _alarmPermissionGranted = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkAlarmPermission();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When app resumes from settings, check permission again
+    if (state == AppLifecycleState.resumed) {
+      _checkAlarmPermission();
+    }
   }
 
   Future<void> _checkAlarmPermission() async {
@@ -57,20 +72,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _openAlarmSettings() async {
     final opened = await AlarmPermissionService.openAlarmSettings();
     
-    if (mounted) {
-      if (opened) {
-        // Wait a bit for user to return from settings
-        await Future.delayed(const Duration(seconds: 1));
-        // Refresh the permission status
-        await _checkAlarmPermission();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not open settings. Please check manually.'),
-          ),
-        );
-      }
+    if (mounted && !opened) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open settings. Please check manually.'),
+        ),
+      );
     }
+    // Permission status will be checked automatically when app resumes
+    // via didChangeAppLifecycleState
   }
   Future<void> _testNotification() async {
     try {

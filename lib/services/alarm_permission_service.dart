@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 
 /// Service to handle SCHEDULE_EXACT_ALARM permission for Android 12+ (API 31+)
 class AlarmPermissionService {
@@ -61,17 +60,16 @@ class AlarmPermissionService {
   /// Returns true if running on Android 12+ (API 31+)
   static Future<bool> requiresAlarmPermission() async {
     try {
-      // If the permission status returns something other than 'notApplicable',
-      // it means we're on Android 12+ and the permission is required
+      // Try to get the permission status
+      // If this succeeds without throwing, the permission exists (Android 12+)
       final status = await Permission.scheduleExactAlarm.status;
-      return status != PermissionStatus.granted || 
-             status == PermissionStatus.denied ||
-             status == PermissionStatus.permanentlyDenied ||
-             status == PermissionStatus.restricted ||
-             status == PermissionStatus.limited ||
-             status == PermissionStatus.provisional;
+      // Permission exists, so it's required on this device
+      debugPrint('Alarm permission is required on this device, status: $status');
+      return true;
     } catch (e) {
-      // If checking the permission throws an error, assume it's not required
+      // If checking the permission throws an error, the permission doesn't exist
+      // This means we're on Android 11 or below where it's not required
+      debugPrint('Alarm permission not required on this device: $e');
       return false;
     }
   }
