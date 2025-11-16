@@ -8,6 +8,7 @@
 - Delete domains from monitoring
 - Manual domain check (refresh button)
 - Domain availability monitoring
+- Debug log page for troubleshooting background checks
 
 ### 2. Expiry Date Tracking
 
@@ -85,9 +86,10 @@ Alert messages include:
 ### Data Storage
 - Local file-based storage using JSON
 - Stored in application documents directory (via path_provider)
-- Two files:
+- Three files:
   - `domains.json` - Domain list with configurations and persistent alarm IDs
   - `settings.json` - App settings (next alarm ID counter)
+  - `debug_logs.json` - Debug logs for troubleshooting (limited to last 500 entries)
 
 ### Permissions
 Required Android permissions:
@@ -119,7 +121,17 @@ Required Android permissions:
    - Act on expiring domains before it's too late
    - Get notified when domains become available to register them first
 
-4. **Test Notifications** (Optional)
+4. **Debug Logs & Diagnostics** (Troubleshooting)
+   - Tap bug report icon in app bar to view debug logs
+   - See detailed logs of all background alarm triggers and domain checks
+   - Filter logs by level (info, success, error, warning)
+   - Access alarm diagnostics to check system status
+   - View common issues and manufacturer-specific solutions
+   - Follow step-by-step troubleshooting guide
+   - Clear logs when needed
+   - Helpful for diagnosing issues with background checks not firing
+
+5. **Test Notifications** (Optional)
    - Go to Settings
    - Tap "Test Notification" to verify notifications are working
 
@@ -129,6 +141,65 @@ Required Android permissions:
 2. **Android Only**: Currently supports only Android platform.
 3. **Storage**: Local storage only, no cloud sync.
 4. **Alarms**: Exact alarm behavior may vary by Android version and device manufacturer.
+
+## Debug Logging & Diagnostics
+
+### Purpose
+Debug logging and diagnostics help troubleshoot issues with background domain checks, particularly when alarms may not be firing as expected.
+
+### What Gets Logged
+- Background alarm triggers and completions
+- Alarm scheduling attempts with detailed parameters
+- Expected vs actual alarm trigger times
+- Alarm cancellation events
+- Domain check cycle start and end
+- Individual domain check results (success/failure)
+- Error details with stack traces when failures occur
+
+### Log Levels
+- **Info** (Blue): General information about operations (alarm triggers, domain checks starting)
+- **Success** (Green): Successful operations (domain checks completed, alarms scheduled)
+- **Warning** (Orange): Non-critical issues that may need attention
+- **Error** (Red): Failures that prevent operations from completing
+
+### Log Management
+- Automatically limited to last 500 entries to prevent storage bloat
+- Filter logs by level for easier debugging
+- Clear all logs with confirmation dialog
+- Logs persist across app restarts
+- Expandable entries to view detailed information
+
+### Alarm Diagnostics
+Access via the medical kit icon (🏥) in the debug logs screen:
+
+- **System Status Check**: Verifies alarm manager initialization
+- **Common Issues Guide**: Lists frequent problems and solutions:
+  - Android 12+ permission requirements
+  - Battery optimization issues
+  - Manufacturer-specific restrictions (Samsung, Xiaomi, Huawei, OnePlus, etc.)
+  - Interval limitations (< 15 minutes may be deferred)
+- **Troubleshooting Steps**: Step-by-step guide to diagnose issues
+- **Quick Actions**: Test logging functionality
+
+### Comprehensive Troubleshooting
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed guide covering:
+- Android version-specific issues
+- Battery optimization for all major manufacturers
+- Testing procedures
+- Known limitations and workarounds
+- Expected log sequences
+
+### Access
+- **Debug Logs**: Tap the bug report icon (🐛) in the home screen app bar
+- **Alarm Diagnostics**: Tap the medical kit icon (🏥) in the debug logs screen
+
+## Critical Fixes
+
+### RebootBroadcastReceiver Fix
+- **Issue**: RebootBroadcastReceiver was disabled in AndroidManifest.xml
+- **Impact**: Alarms would not be rescheduled after device reboot
+- **Fix**: Enabled the receiver to properly handle BOOT_COMPLETED events
+- **Result**: Alarms now reschedule automatically after device restart
 
 ## Future Enhancements
 
@@ -140,3 +211,5 @@ Potential improvements while maintaining minimal dependencies:
 - Multiple RDAP server fallbacks for better coverage
 - Bulk domain availability checker
 - Domain price estimation integration
+- Export debug logs to file for sharing
+- Automated permission request flow for Android 12+

@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'storage_service.dart';
 import 'notification_service.dart';
 import 'rdap_service.dart';
+import 'debug_log_service.dart';
 import '../models/domain.dart';
+import '../models/debug_log.dart';
 
 class DomainCheckService {
   static Future<void> checkAllDomains() async {
@@ -10,15 +12,33 @@ class DomainCheckService {
     await StorageService.init();
 
     final domains = await StorageService.getDomains();
+    
+    await DebugLogService.addLog(
+      LogLevel.info,
+      'Starting domain check cycle',
+      details: 'Checking ${domains.length} domain(s)',
+    );
 
     for (final domain in domains) {
       await _checkDomain(domain);
     }
+    
+    await DebugLogService.addLog(
+      LogLevel.success,
+      'Domain check cycle completed',
+      details: 'Checked ${domains.length} domain(s) successfully',
+    );
   }
 
   static Future<void> _checkDomain(Domain domain) async {
     try {
       debugPrint('Checking domain: ${domain.url} (Mode: ${domain.monitoringMode.name})');
+      
+      await DebugLogService.addLog(
+        LogLevel.info,
+        'Checking domain: ${domain.url}',
+        details: 'Mode: ${domain.monitoringMode.name}, Check interval: ${domain.checkInterval}',
+      );
       
       DateTime? expiryDate;
       bool? isAvailable;
@@ -108,8 +128,29 @@ class DomainCheckService {
       }
 
       debugPrint('Domain check completed for ${domain.url}');
+      
+      // Log successful check with results
+      String resultDetails = 'Domain: ${domain.url}';
+      if (expiryDate != null) {
+        resultDetails += '\nExpiry: ${_formatDateTimeAsiaDhaka(expiryDate)}';
+      }
+      if (isAvailable != null) {
+        resultDetails += '\nAvailable: ${isAvailable ? "Yes" : "No"}';
+      }
+      
+      await DebugLogService.addLog(
+        LogLevel.success,
+        'Domain check completed: ${domain.url}',
+        details: resultDetails,
+      );
     } catch (e) {
       debugPrint('Error checking domain ${domain.url}: $e');
+      
+      await DebugLogService.addLog(
+        LogLevel.error,
+        'Domain check failed: ${domain.url}',
+        details: 'Error: $e',
+      );
     }
   }
 
