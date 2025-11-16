@@ -10,6 +10,7 @@ On Android 15 (API 35), users reported that even after granting notification and
 4. **No permission verification**: The app wasn't explicitly checking if alarm permission was granted before scheduling alarms
 5. **Insufficient debug logging**: The alarm callback didn't have enough logging to diagnose if it was executing
 6. **Service initialization in background**: StorageService and DebugLogService were not properly initialized in background alarm callback context
+7. **CRITICAL (v1.1.2)**: **Alarm callback was a static method instead of top-level function**: The `android_alarm_manager_plus` package requires callbacks to be top-level functions to be accessible from the background isolate. The callback was implemented as a static method within the `AlarmService` class, preventing it from being invoked.
 
 ## Changes Made
 
@@ -26,6 +27,7 @@ Added three new permissions:
 - **Permission request flow**: If permission isn't granted, tries to request it before scheduling
 - **Service initialization**: Explicitly initializes StorageService and DebugLogService at the start of alarm callback
 - **Enhanced background context**: All required services are now initialized before domain checks run
+- **CRITICAL (v1.1.2)**: **Moved callback to top-level function**: Changed from `AlarmService._alarmCallback()` (static method) to `alarmCallback()` (top-level function) with `@pragma('vm:entry-point')` annotation. This is required by `android_alarm_manager_plus` to make the callback accessible from the background isolate.
 
 ### 3. Main App (lib/main.dart)
 - **Await permission request**: Now waits for alarm permission request to complete before loading UI
@@ -47,11 +49,16 @@ Added three new permissions:
 - **Debug logging**: Added debug print to track initialization path
 - **Background context**: Now properly initializes in background alarm callback to persist logs
 
-### 7. Documentation
-- Updated TROUBLESHOOTING.md with Android 15 specific guidance
+### 7. Domain Check Service (lib/services/domain_check_service.dart) - v1.1.2
+- **Notification failure logging**: Now logs when notifications fail to send
+- **Helpful troubleshooting**: Provides clear guidance about checking notification permissions
+- **Both notification types**: Covers both expiry and availability notifications
+
+### 8. Documentation
+- Updated TROUBLESHOOTING.md with Android 15 specific guidance and v1.1.2 fix information
 - Updated README.md to mention Android 15 support
 - Updated FEATURES.md with details about new permissions and fixes
-- Updated ANDROID_15_FIX.md with service initialization fixes
+- Updated ANDROID_15_FIX.md with service initialization fixes and v1.1.2 callback fix
 
 ## How to Verify the Fix
 
@@ -153,6 +160,37 @@ The alarm callback now logs at every step:
 
 This makes it easy to identify where things might be failing.
 
+### v1.1.2 Critical Fix: Top-Level Callback Function
+**The most critical fix**: The alarm callback was moved from a static method to a top-level function. This is a requirement of the `android_alarm_manager_plus` package for the callback to be accessible from the background isolate where alarms execute.
+
+**Before (broken)**:
+```dart
+class AlarmService {
+  @pragma('vm:entry-point')
+  static Future<void> _alarmCallback() async {
+    // Callback code
+  }
+}
+```
+
+**After (working)**:
+```dart
+@pragma('vm:entry-point')
+Future<void> alarmCallback() async {
+  // Callback code (same as before, just at top level)
+}
+
+class AlarmService {
+  // scheduleAlarm now references alarmCallback instead of _alarmCallback
+}
+```
+
+This change is **critical** because without it, the Android alarm manager cannot find and invoke the callback function from the background isolate, resulting in:
+- No alarms firing
+- No background domain checks
+- No notifications
+- Empty debug logs (no "Background alarm triggered" messages)
+
 ## Compatibility
 
 This fix maintains backward compatibility:
@@ -164,8 +202,10 @@ This fix maintains backward compatibility:
 
 This fix addresses:
 - Empty debug logs on Android 15
-- Alarms not triggering on Android 14/15
+- Alarms not triggering on Android 14/15 (and all versions)
 - Notifications not showing on Android 14/15
 - Missing permission errors on Android 12+
+- **v1.1.2**: Background alarms not firing due to callback not being accessible from background isolate
+- **v1.1.2**: "Still no checking or notifications triggered" issue
 
 For other alarm-related issues, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
