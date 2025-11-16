@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/debug_log.dart';
 import '../services/debug_log_service.dart';
+import 'alarm_diagnostics_screen.dart';
 
 class DebugLogScreen extends StatefulWidget {
   const DebugLogScreen({super.key});
@@ -102,6 +103,18 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
         title: const Text('Debug Logs'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.medical_services),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AlarmDiagnosticsScreen(),
+                ),
+              );
+            },
+            tooltip: 'Alarm Diagnostics',
+          ),
           PopupMenuButton<LogLevel?>(
             icon: const Icon(Icons.filter_list),
             tooltip: 'Filter by level',

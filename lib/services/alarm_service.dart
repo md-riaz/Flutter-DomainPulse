@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'domain_check_service.dart';
 import 'notification_service.dart';
 import 'debug_log_service.dart';
+import 'alarm_diagnostic_service.dart';
 import '../models/debug_log.dart';
 
 class AlarmService {
@@ -13,6 +14,13 @@ class AlarmService {
     String domainUrl,
   ) async {
     try {
+      // Log attempt with full details
+      await AlarmDiagnosticService.logScheduleAttempt(
+        alarmId: alarmId,
+        interval: interval,
+        domainUrl: domainUrl,
+      );
+      
       await AndroidAlarmManager.periodic(
         interval,
         alarmId,
@@ -24,18 +32,24 @@ class AlarmService {
       );
       debugPrint('Alarm scheduled for $domainUrl with interval $interval');
       
-      await DebugLogService.addLog(
-        LogLevel.success,
-        'Alarm scheduled for domain: $domainUrl',
-        details: 'Alarm ID: $alarmId\nInterval: $interval',
+      await AlarmDiagnosticService.logScheduleSuccess(
+        alarmId: alarmId,
+        interval: interval,
+        domainUrl: domainUrl,
       );
-    } catch (e) {
+      
+      await AlarmDiagnosticService.logExpectedAlarmTime(
+        alarmId: alarmId,
+        interval: interval,
+      );
+    } catch (e, stackTrace) {
       debugPrint('Error scheduling alarm: $e');
+      debugPrint('Stack trace: $stackTrace');
       
       await DebugLogService.addLog(
         LogLevel.error,
         'Failed to schedule alarm for: $domainUrl',
-        details: 'Alarm ID: $alarmId\nError: $e',
+        details: 'Alarm ID: $alarmId\nInterval: $interval\nError: $e\nStack trace: $stackTrace',
       );
     }
   }
