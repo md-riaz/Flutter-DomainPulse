@@ -107,11 +107,19 @@ class DomainCheckService {
         }
 
         if (shouldNotify) {
-          await NotificationService.sendNotification(
+          final notificationSent = await NotificationService.sendNotification(
             title,
             message,
             type: NotificationType.expiry,
           );
+          
+          if (!notificationSent) {
+            await DebugLogService.addLog(
+              LogLevel.warning,
+              'Failed to send expiry notification',
+              details: 'Domain: ${domain.url}\nTitle: $title\nMessage: $message\n\nPossible reasons:\n- Notification permission not granted\n- Notification service initialization failed\n\nPlease check notification permissions in Settings → Apps → DomainPulse → Permissions → Notifications',
+            );
+          }
         }
       }
 
@@ -120,11 +128,19 @@ class DomainCheckService {
       if (wasUnavailable && isNowAvailable && 
           (domain.monitoringMode == MonitoringMode.availabilityOnly || 
            domain.monitoringMode == MonitoringMode.both)) {
-        await NotificationService.sendNotification(
+        final notificationSent = await NotificationService.sendNotification(
           'Domain Available: ${domain.url}',
           'Domain ${domain.url} is now available for registration! Act fast to secure it before someone else does.',
           type: NotificationType.availability,
         );
+        
+        if (!notificationSent) {
+          await DebugLogService.addLog(
+            LogLevel.warning,
+            'Failed to send availability notification',
+            details: 'Domain: ${domain.url}\n\nPossible reasons:\n- Notification permission not granted\n- Notification service initialization failed\n\nPlease check notification permissions in Settings → Apps → DomainPulse → Permissions → Notifications',
+          );
+        }
       }
 
       debugPrint('Domain check completed for ${domain.url}');
