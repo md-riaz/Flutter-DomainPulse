@@ -5,18 +5,21 @@ import 'package:path_provider/path_provider.dart';
 import '../models/domain.dart';
 
 class StorageService {
-  static late String _dataPath;
+  static String? _dataPath;
   static const String _domainsFile = 'domains.json';
   static const String _settingsFile = 'settings.json';
   static int _nextAlarmId = 1000;
 
   static Future<void> init() async {
-    // Use path_provider for proper Android storage
-    final directory = await getApplicationDocumentsDirectory();
-    _dataPath = directory.path;
-    
-    // Load the next alarm ID from storage
-    await _loadNextAlarmId();
+    if (_dataPath == null) {
+      // Use path_provider for proper Android storage
+      final directory = await getApplicationDocumentsDirectory();
+      _dataPath = directory.path;
+      debugPrint('StorageService initialized with path: $_dataPath');
+      
+      // Load the next alarm ID from storage
+      await _loadNextAlarmId();
+    }
   }
 
   static Future<void> _loadNextAlarmId() async {
@@ -55,10 +58,20 @@ class StorageService {
   }
 
   static Future<File> _getDomainsFile() async {
+    // Always ensure initialization before accessing file
+    await init();
+    if (_dataPath == null) {
+      throw Exception('StorageService: _dataPath is null after init()');
+    }
     return File('$_dataPath/$_domainsFile');
   }
 
   static Future<File> _getSettingsFile() async {
+    // Always ensure initialization before accessing file
+    await init();
+    if (_dataPath == null) {
+      throw Exception('StorageService: _dataPath is null after init()');
+    }
     return File('$_dataPath/$_settingsFile');
   }
 
