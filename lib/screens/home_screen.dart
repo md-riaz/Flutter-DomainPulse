@@ -6,6 +6,7 @@ import '../services/rdap_service.dart';
 import '../constants.dart';
 import 'domain_form_screen.dart';
 import 'settings_screen.dart';
+import 'debug_log_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -118,6 +119,16 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('DomainPulse'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const DebugLogScreen()),
+              );
+            },
+            tooltip: 'Debug Logs',
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
