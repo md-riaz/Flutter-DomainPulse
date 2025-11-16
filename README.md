@@ -52,7 +52,8 @@ mv build/app/outputs/flutter-apk/app-release.apk DomainPulse-v1.0.0.apk
 3. **Configure Alert Timing**: Set when to be notified (30m to 30 days before expiry)
 4. **Monitor Availability**: Track domain registration status - see if domains are available for purchase
 5. **Receive Alerts**: Get local notifications directly on your device when domains expire or become available
-6. **Debug Issues**: Tap the bug report icon to view detailed logs of all background checks (helpful if checks aren't firing as expected)
+6. **Debug Issues**: Tap the bug report icon to view detailed logs of all background checks
+7. **Troubleshoot**: If checks aren't firing, tap the diagnostics icon in debug logs or see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
 ## Notifications
 
@@ -62,6 +63,16 @@ This app uses local Android notifications to alert you based on your configured 
 - When a domain becomes available for registration (so you can register it before anyone else)
 
 Notifications are delivered directly to your device without requiring any external services.
+
+## Troubleshooting
+
+If domain checks are not running at the scheduled intervals, see the comprehensive [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide which covers:
+- Android version-specific issues (12+, 13+)
+- Battery optimization settings for all major manufacturers
+- Common problems and solutions
+- Step-by-step diagnosis procedures
+
+Or use the in-app diagnostics: Tap the bug report icon → then the diagnostics (medical kit) icon.
 
 ## License
 

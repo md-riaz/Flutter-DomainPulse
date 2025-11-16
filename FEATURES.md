@@ -121,10 +121,13 @@ Required Android permissions:
    - Act on expiring domains before it's too late
    - Get notified when domains become available to register them first
 
-4. **Debug Logs** (Troubleshooting)
+4. **Debug Logs & Diagnostics** (Troubleshooting)
    - Tap bug report icon in app bar to view debug logs
    - See detailed logs of all background alarm triggers and domain checks
    - Filter logs by level (info, success, error, warning)
+   - Access alarm diagnostics to check system status
+   - View common issues and manufacturer-specific solutions
+   - Follow step-by-step troubleshooting guide
    - Clear logs when needed
    - Helpful for diagnosing issues with background checks not firing
 
@@ -139,14 +142,16 @@ Required Android permissions:
 3. **Storage**: Local storage only, no cloud sync.
 4. **Alarms**: Exact alarm behavior may vary by Android version and device manufacturer.
 
-## Debug Logging
+## Debug Logging & Diagnostics
 
 ### Purpose
-Debug logging helps troubleshoot issues with background domain checks, particularly when alarms may not be firing as expected.
+Debug logging and diagnostics help troubleshoot issues with background domain checks, particularly when alarms may not be firing as expected.
 
 ### What Gets Logged
 - Background alarm triggers and completions
-- Alarm scheduling and cancellation events
+- Alarm scheduling attempts with detailed parameters
+- Expected vs actual alarm trigger times
+- Alarm cancellation events
 - Domain check cycle start and end
 - Individual domain check results (success/failure)
 - Error details with stack traces when failures occur
@@ -164,8 +169,37 @@ Debug logging helps troubleshoot issues with background domain checks, particula
 - Logs persist across app restarts
 - Expandable entries to view detailed information
 
+### Alarm Diagnostics
+Access via the medical kit icon (🏥) in the debug logs screen:
+
+- **System Status Check**: Verifies alarm manager initialization
+- **Common Issues Guide**: Lists frequent problems and solutions:
+  - Android 12+ permission requirements
+  - Battery optimization issues
+  - Manufacturer-specific restrictions (Samsung, Xiaomi, Huawei, OnePlus, etc.)
+  - Interval limitations (< 15 minutes may be deferred)
+- **Troubleshooting Steps**: Step-by-step guide to diagnose issues
+- **Quick Actions**: Test logging functionality
+
+### Comprehensive Troubleshooting
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed guide covering:
+- Android version-specific issues
+- Battery optimization for all major manufacturers
+- Testing procedures
+- Known limitations and workarounds
+- Expected log sequences
+
 ### Access
-Tap the bug report icon (🐛) in the home screen app bar to view debug logs.
+- **Debug Logs**: Tap the bug report icon (🐛) in the home screen app bar
+- **Alarm Diagnostics**: Tap the medical kit icon (🏥) in the debug logs screen
+
+## Critical Fixes
+
+### RebootBroadcastReceiver Fix
+- **Issue**: RebootBroadcastReceiver was disabled in AndroidManifest.xml
+- **Impact**: Alarms would not be rescheduled after device reboot
+- **Fix**: Enabled the receiver to properly handle BOOT_COMPLETED events
+- **Result**: Alarms now reschedule automatically after device restart
 
 ## Future Enhancements
 
@@ -178,3 +212,4 @@ Potential improvements while maintaining minimal dependencies:
 - Bulk domain availability checker
 - Domain price estimation integration
 - Export debug logs to file for sharing
+- Automated permission request flow for Android 12+
