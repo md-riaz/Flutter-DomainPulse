@@ -34,7 +34,7 @@ Future<void> alarmCallback() async {
     
     // Initialize notification service for background notifications
     debugPrint('Initializing notification service...');
-    await NotificationService.initialize();
+    await NotificationService.initialize(isBackgroundContext: true);
     debugPrint('Notification service initialized');
     
     // Log alarm trigger - THIS IS CRITICAL FOR DEBUGGING

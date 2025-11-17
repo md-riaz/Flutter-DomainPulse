@@ -7,7 +7,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
 
-  static Future<void> initialize() async {
+  static Future<void> initialize({bool isBackgroundContext = false}) async {
     if (_initialized) return;
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -23,8 +23,15 @@ class NotificationService {
     _initialized = true;
     debugPrint('Notification service initialized');
     
-    // Request notification permission on Android 13+
-    await requestNotificationPermission();
+    // Request notification permission on Android 13+ (only in foreground context)
+    // In background context (alarm callback), we can only check, not request
+    if (!isBackgroundContext) {
+      await requestNotificationPermission();
+    } else {
+      // Just check permission status in background, don't request
+      final hasPermission = await checkNotificationPermission();
+      debugPrint('Notification permission status (background check): ${hasPermission ? "GRANTED" : "DENIED"}');
+    }
   }
 
   static Future<bool> requestNotificationPermission() async {
