@@ -13,7 +13,7 @@ class RdapService {
     'org': 'https://rdap.publicinterestregistry.org/rdap',
     'info': 'https://rdap.afilias-srs.net/rdap/info',
     'biz': 'https://rdap.afilias-srs.net/rdap/biz',
-    
+
     // New gTLDs managed by various registries
     'xyz': 'https://rdap.centralnic.com/xyz',
     'online': 'https://rdap.centralnic.com/online',
