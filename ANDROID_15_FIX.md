@@ -11,6 +11,7 @@ On Android 15 (API 35), users reported that even after granting notification and
 5. **Insufficient debug logging**: The alarm callback didn't have enough logging to diagnose if it was executing
 6. **Service initialization in background**: StorageService and DebugLogService were not properly initialized in background alarm callback context
 7. **CRITICAL (v1.1.2)**: **Alarm callback was a static method instead of top-level function**: The `android_alarm_manager_plus` package requires callbacks to be top-level functions to be accessible from the background isolate. The callback was implemented as a static method within the `AlarmService` class, preventing it from being invoked.
+8. **CRITICAL (v1.1.3)**: **Permission request in background context**: The notification service was calling `Permission.notification.request()` during background alarm execution, which requires an Android Activity context that doesn't exist in background. This caused "Unable to detect current Android Activity" crashes.
 
 ## Changes Made
 
@@ -54,11 +55,18 @@ Added three new permissions:
 - **Helpful troubleshooting**: Provides clear guidance about checking notification permissions
 - **Both notification types**: Covers both expiry and availability notifications
 
-### 8. Documentation
-- Updated TROUBLESHOOTING.md with Android 15 specific guidance and v1.1.2 fix information
+### 8. Notification Service (lib/services/notification_service.dart) - v1.1.3
+- **Background context detection**: Added optional `isBackgroundContext` parameter to `initialize()` method
+- **Conditional permission request**: Only requests notification permission in foreground contexts (when Activity is available)
+- **Background permission check**: In background contexts, only checks permission status without requesting
+- **Fixes crash**: Prevents "Unable to detect current Android Activity" error during background alarm execution
+- **Maintains behavior**: Foreground initialization unchanged - continues to request permission normally
+
+### 9. Documentation
+- Updated TROUBLESHOOTING.md with Android 15 specific guidance, v1.1.2 fix, and v1.1.3 fix information
 - Updated README.md to mention Android 15 support
 - Updated FEATURES.md with details about new permissions and fixes
-- Updated ANDROID_15_FIX.md with service initialization fixes and v1.1.2 callback fix
+- Updated ANDROID_15_FIX.md with service initialization fixes, v1.1.2 callback fix, and v1.1.3 permission fix
 
 ## How to Verify the Fix
 
@@ -191,6 +199,56 @@ This change is **critical** because without it, the Android alarm manager cannot
 - No notifications
 - Empty debug logs (no "Background alarm triggered" messages)
 
+### v1.1.3 Critical Fix: Background Permission Request
+**Another critical fix**: The notification service was trying to request permissions during background alarm execution. Permission requests require an Android Activity context to show the permission dialog, but background alarm callbacks run in an isolate without any Activity context.
+
+**The Problem**:
+```dart
+// In NotificationService.initialize()
+await requestNotificationPermission();  // ❌ Crashes in background!
+
+// requestNotificationPermission() calls:
+await Permission.notification.request();  // Requires Activity context
+```
+
+This caused the error:
+```
+PlatformException(PermissionHandler.PermissionManager, Unable to detect current Android Activity., null, null)
+```
+
+**The Solution**:
+```dart
+// Add parameter to detect background context
+static Future<void> initialize({bool isBackgroundContext = false}) async {
+  // ... initialization code ...
+  
+  if (!isBackgroundContext) {
+    // Foreground: Request permission (shows dialog)
+    await requestNotificationPermission();
+  } else {
+    // Background: Only check permission (no dialog)
+    final hasPermission = await checkNotificationPermission();
+  }
+}
+
+// In alarmCallback (background):
+await NotificationService.initialize(isBackgroundContext: true);  // ✅ No crash
+
+// In main.dart (foreground):
+await NotificationService.initialize();  // ✅ Requests permission normally
+```
+
+**Why this works**:
+1. **Foreground initialization** (app startup): Calls `initialize()` with default `isBackgroundContext=false`, which requests permission normally with UI dialog
+2. **Background initialization** (alarm callback): Calls `initialize(isBackgroundContext: true)`, which only checks permission status without showing dialog
+3. **Permission must be granted during foreground**: Users grant permission during normal app usage, then background checks can use those permissions
+
+This change is **critical** because without it:
+- Background alarms crash with "Unable to detect current Android Activity" error
+- Debug logs show "Background alarm failed" with permission handler errors
+- No domain checks execute in background
+- No notifications are sent
+
 ## Compatibility
 
 This fix maintains backward compatibility:
@@ -207,5 +265,8 @@ This fix addresses:
 - Missing permission errors on Android 12+
 - **v1.1.2**: Background alarms not firing due to callback not being accessible from background isolate
 - **v1.1.2**: "Still no checking or notifications triggered" issue
+- **v1.1.3**: "Background alarm failed" with "Unable to detect current Android Activity" error
+- **v1.1.3**: PlatformException in PermissionHandler during background execution
+- **v1.1.3**: Background alarm crashes when trying to request notification permission
 
 For other alarm-related issues, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).

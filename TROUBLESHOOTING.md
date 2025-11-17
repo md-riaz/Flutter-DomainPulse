@@ -1,10 +1,22 @@
 # DomainPulse Troubleshooting Guide
 
-## Recent Fix (v1.1.2+)
+## Recent Fixes
 
-**If you're experiencing issues with alarms and notifications not triggering**, this has been fixed in the latest version. The root cause was that the alarm callback function was implemented as a static method instead of a top-level function, which prevented the Android alarm manager from properly invoking it in the background isolate.
+### v1.1.3 - Background Alarm Permission Error Fix
 
-### What was fixed:
+**If you're seeing "Background alarm failed" errors with "Unable to detect current Android Activity"**, this has been fixed. The root cause was that the notification service was trying to request permissions during background alarm execution, which requires a UI context that doesn't exist in the background.
+
+**What was fixed:**
+- ✅ Notification permission requests are now skipped in background contexts
+- ✅ Background alarm callbacks only check permission status (no dialog)
+- ✅ Permission requests only happen during foreground app usage
+- ✅ Background domain checks and notifications work properly
+
+### v1.1.2 - Top-Level Callback Function Fix
+
+**If you're experiencing issues with alarms and notifications not triggering**, this was fixed in v1.1.2. The root cause was that the alarm callback function was implemented as a static method instead of a top-level function, which prevented the Android alarm manager from properly invoking it in the background isolate.
+
+**What was fixed:**
 - ✅ Alarm callback is now a top-level function (required by `android_alarm_manager_plus`)
 - ✅ Background domain checks will now execute properly at scheduled intervals
 - ✅ Notifications will be sent when domains approach expiry or become available
