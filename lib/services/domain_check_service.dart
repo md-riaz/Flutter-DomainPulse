@@ -151,20 +151,20 @@ class DomainCheckService {
         }
       }
 
-      // Send notification if domain became available
+      // Send notification if domain is available
       // Only check availability notifications if monitoring availability
       if (domain.monitoringMode == MonitoringMode.availabilityOnly || 
           domain.monitoringMode == MonitoringMode.both) {
-        if (wasUnavailable && isNowAvailable) {
+        if (isAvailable == true) {
           await DebugLogService.addLog(
             LogLevel.info,
-            'Domain became available - attempting notification',
-            details: 'Domain: ${domain.url}\nPrevious status: Unavailable\nCurrent status: Available',
+            'Domain is available - attempting notification',
+            details: 'Domain: ${domain.url}\nStatus: Available for registration',
           );
           
           final notificationSent = await NotificationService.sendNotification(
             'Domain Available: ${domain.url}',
-            'Domain ${domain.url} is now available for registration! Act fast to secure it before someone else does.',
+            'Domain ${domain.url} is available for registration! Act fast to secure it before someone else does.',
             type: NotificationType.availability,
           );
           
@@ -183,19 +183,17 @@ class DomainCheckService {
           }
         } else {
           // Log availability check status when no notification is needed
-          String availabilityStatus;
-          if (isAvailable == true) {
-            availabilityStatus = 'Available (already available, no status change)';
-          } else if (isAvailable == false) {
-            availabilityStatus = 'Unavailable (still unavailable, no status change)';
+          String reason;
+          if (isAvailable == false) {
+            reason = 'Domain is registered (not available)';
           } else {
-            availabilityStatus = 'Status unknown (availability check not performed)';
+            reason = 'Availability status unknown (check may have failed)';
           }
           
           await DebugLogService.addLog(
             LogLevel.info,
             'No availability notification needed',
-            details: 'Domain: ${domain.url}\nCurrent status: $availabilityStatus\nReason: Notification only sent when domain becomes newly available',
+            details: 'Domain: ${domain.url}\nReason: $reason',
           );
         }
       }
