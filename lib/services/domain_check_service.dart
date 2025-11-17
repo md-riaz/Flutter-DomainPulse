@@ -153,32 +153,49 @@ class DomainCheckService {
 
       // Send notification if domain became available
       // Only check availability notifications if monitoring availability
-      if (wasUnavailable && isNowAvailable && 
-          (domain.monitoringMode == MonitoringMode.availabilityOnly || 
-           domain.monitoringMode == MonitoringMode.both)) {
-        await DebugLogService.addLog(
-          LogLevel.info,
-          'Domain became available - attempting notification',
-          details: 'Domain: ${domain.url}\nPrevious status: Unavailable\nCurrent status: Available',
-        );
-        
-        final notificationSent = await NotificationService.sendNotification(
-          'Domain Available: ${domain.url}',
-          'Domain ${domain.url} is now available for registration! Act fast to secure it before someone else does.',
-          type: NotificationType.availability,
-        );
-        
-        if (notificationSent) {
+      if (domain.monitoringMode == MonitoringMode.availabilityOnly || 
+          domain.monitoringMode == MonitoringMode.both) {
+        if (wasUnavailable && isNowAvailable) {
           await DebugLogService.addLog(
-            LogLevel.success,
-            'Availability notification sent successfully',
-            details: 'Domain: ${domain.url}',
+            LogLevel.info,
+            'Domain became available - attempting notification',
+            details: 'Domain: ${domain.url}\nPrevious status: Unavailable\nCurrent status: Available',
           );
+          
+          final notificationSent = await NotificationService.sendNotification(
+            'Domain Available: ${domain.url}',
+            'Domain ${domain.url} is now available for registration! Act fast to secure it before someone else does.',
+            type: NotificationType.availability,
+          );
+          
+          if (notificationSent) {
+            await DebugLogService.addLog(
+              LogLevel.success,
+              'Availability notification sent successfully',
+              details: 'Domain: ${domain.url}',
+            );
+          } else {
+            await DebugLogService.addLog(
+              LogLevel.warning,
+              'Failed to send availability notification',
+              details: 'Domain: ${domain.url}\n\nPossible reasons:\n- Notification permission not granted\n- Notification service initialization failed\n\nPlease check notification permissions in Settings → Apps → DomainPulse → Permissions → Notifications',
+            );
+          }
         } else {
+          // Log availability check status when no notification is needed
+          String availabilityStatus;
+          if (isAvailable == true) {
+            availabilityStatus = 'Available (already available, no status change)';
+          } else if (isAvailable == false) {
+            availabilityStatus = 'Unavailable (still unavailable, no status change)';
+          } else {
+            availabilityStatus = 'Status unknown (availability check not performed)';
+          }
+          
           await DebugLogService.addLog(
-            LogLevel.warning,
-            'Failed to send availability notification',
-            details: 'Domain: ${domain.url}\n\nPossible reasons:\n- Notification permission not granted\n- Notification service initialization failed\n\nPlease check notification permissions in Settings → Apps → DomainPulse → Permissions → Notifications',
+            LogLevel.info,
+            'No availability notification needed',
+            details: 'Domain: ${domain.url}\nCurrent status: $availabilityStatus\nReason: Notification only sent when domain becomes newly available',
           );
         }
       }
