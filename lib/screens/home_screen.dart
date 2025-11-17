@@ -3,6 +3,7 @@ import '../models/domain.dart';
 import '../services/storage_service.dart';
 import '../services/alarm_service.dart';
 import '../services/rdap_service.dart';
+import '../services/alarm_permission_service.dart';
 import '../constants.dart';
 import 'domain_form_screen.dart';
 import 'settings_screen.dart';
@@ -23,6 +24,45 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadDomains();
+    // Check alarm permission after the first frame is rendered
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAlarmPermission();
+    });
+  }
+
+  Future<void> _checkAlarmPermission() async {
+    final hasPermission = await AlarmPermissionService.checkAlarmPermission();
+    
+    if (!hasPermission && mounted) {
+      // Show alert dialog if permission is not granted
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Alarm Permission Required'),
+          content: const Text(
+            'DomainPulse needs permission to schedule exact alarms for background domain checks.\n\n'
+            'Without this permission, automatic monitoring will not work and you won\'t receive notifications when domains are expiring or become available.\n\n'
+            'Please grant the alarm permission in settings.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await AlarmPermissionService.openAlarmSettings();
+              },
+              child: const Text('Open Settings'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Future<void> _loadDomains() async {
