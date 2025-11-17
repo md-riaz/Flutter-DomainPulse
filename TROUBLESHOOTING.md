@@ -2,6 +2,20 @@
 
 ## Recent Fixes
 
+### v1.1.4 - One-Shot Alarms for Reliable Background Checks
+
+**If domain checks are still not running accurately when the app is closed**, this has been fixed in v1.1.4. The root cause was that periodic alarms with exact timing are heavily restricted by Android's Doze mode and are often batched or deferred when the app is in the background.
+
+**What was fixed:**
+- ✅ Replaced periodic alarms with one-shot alarms (much more reliable in Doze mode)
+- ✅ Implemented self-rescheduling after each check cycle
+- ✅ One-shot alarms have higher priority in Android's scheduler
+- ✅ No more batching or deferral of alarms when app is closed
+- ✅ Each domain check fires at its exact scheduled time
+
+**Why this matters:**
+Android treats one-shot alarms with `exact: true` and `allowWhileIdle: true` with much higher priority than periodic alarms. This is the recommended approach for reliable background work when the app is not running.
+
 ### v1.1.3 - Background Alarm Permission Error Fix
 
 **If you're seeing "Background alarm failed" errors with "Unable to detect current Android Activity"**, this has been fixed. The root cause was that the notification service was trying to request permissions during background alarm execution, which requires a UI context that doesn't exist in the background.
