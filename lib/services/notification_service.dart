@@ -44,12 +44,18 @@ class NotificationService {
     NotificationType type = NotificationType.expiry,
   }) async {
     try {
+      debugPrint('NotificationService: Attempting to send notification - Type: ${type.name}');
+      
       if (!_initialized) {
+        debugPrint('NotificationService: Not initialized, initializing now...');
         await initialize();
       }
 
       // Check if permission is granted
+      debugPrint('NotificationService: Checking notification permission...');
       final hasPermission = await checkNotificationPermission();
+      debugPrint('NotificationService: Permission status: ${hasPermission ? "GRANTED" : "DENIED"}');
+      
       if (!hasPermission) {
         debugPrint('Notification permission not granted');
         return false;
@@ -76,6 +82,7 @@ class NotificationService {
 
       final notificationDetails = NotificationDetails(android: androidDetails);
 
+      debugPrint('NotificationService: Showing notification via flutter_local_notifications...');
       await _notifications.show(
         DateTime.now().millisecondsSinceEpoch ~/ 1000,
         title,
@@ -83,10 +90,10 @@ class NotificationService {
         notificationDetails,
       );
 
-      debugPrint('Local notification sent: $title (${type.name})');
+      debugPrint('NotificationService: Notification sent successfully - Title: $title (${type.name})');
       return true;
     } catch (e) {
-      debugPrint('Error sending notification: $e');
+      debugPrint('NotificationService ERROR: Failed to send notification - $e');
       return false;
     }
   }

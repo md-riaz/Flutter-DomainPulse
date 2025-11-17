@@ -107,19 +107,47 @@ class DomainCheckService {
         }
 
         if (shouldNotify) {
+          await DebugLogService.addLog(
+            LogLevel.info,
+            'Attempting to send expiry notification',
+            details: 'Domain: ${domain.url}\nTitle: $title\nMessage: $message',
+          );
+          
           final notificationSent = await NotificationService.sendNotification(
             title,
             message,
             type: NotificationType.expiry,
           );
           
-          if (!notificationSent) {
+          if (notificationSent) {
+            await DebugLogService.addLog(
+              LogLevel.success,
+              'Expiry notification sent successfully',
+              details: 'Domain: ${domain.url}\nTitle: $title',
+            );
+          } else {
             await DebugLogService.addLog(
               LogLevel.warning,
               'Failed to send expiry notification',
               details: 'Domain: ${domain.url}\nTitle: $title\nMessage: $message\n\nPossible reasons:\n- Notification permission not granted\n- Notification service initialization failed\n\nPlease check notification permissions in Settings → Apps → DomainPulse → Permissions → Notifications',
             );
           }
+        } else {
+          // Log why notification was not sent
+          final now = DateTime.now().toUtc();
+          String reason;
+          if (domain.notifyBeforeExpiry == Duration.zero) {
+            reason = 'Domain not yet expired (expires: ${_formatDateTimeAsiaDhaka(expiryDate)})';
+          } else {
+            final notifyThreshold = now.add(domain.notifyBeforeExpiry);
+            final daysUntilThreshold = expiryDate.difference(notifyThreshold).inDays;
+            reason = 'Domain not within notification window (notify ${domain.notifyBeforeExpiry.inDays} days before expiry, currently $daysUntilThreshold days until threshold)';
+          }
+          await DebugLogService.addLog(
+            LogLevel.info,
+            'No expiry notification needed',
+            details: 'Domain: ${domain.url}\nExpiry: ${_formatDateTimeAsiaDhaka(expiryDate)}\nReason: $reason',
+          );
         }
       }
 
@@ -128,13 +156,25 @@ class DomainCheckService {
       if (wasUnavailable && isNowAvailable && 
           (domain.monitoringMode == MonitoringMode.availabilityOnly || 
            domain.monitoringMode == MonitoringMode.both)) {
+        await DebugLogService.addLog(
+          LogLevel.info,
+          'Domain became available - attempting notification',
+          details: 'Domain: ${domain.url}\nPrevious status: Unavailable\nCurrent status: Available',
+        );
+        
         final notificationSent = await NotificationService.sendNotification(
           'Domain Available: ${domain.url}',
           'Domain ${domain.url} is now available for registration! Act fast to secure it before someone else does.',
           type: NotificationType.availability,
         );
         
-        if (!notificationSent) {
+        if (notificationSent) {
+          await DebugLogService.addLog(
+            LogLevel.success,
+            'Availability notification sent successfully',
+            details: 'Domain: ${domain.url}',
+          );
+        } else {
           await DebugLogService.addLog(
             LogLevel.warning,
             'Failed to send availability notification',
