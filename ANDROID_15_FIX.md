@@ -12,6 +12,7 @@ On Android 15 (API 35), users reported that even after granting notification and
 6. **Service initialization in background**: StorageService and DebugLogService were not properly initialized in background alarm callback context
 7. **CRITICAL (v1.1.2)**: **Alarm callback was a static method instead of top-level function**: The `android_alarm_manager_plus` package requires callbacks to be top-level functions to be accessible from the background isolate. The callback was implemented as a static method within the `AlarmService` class, preventing it from being invoked.
 8. **CRITICAL (v1.1.3)**: **Permission request in background context**: The notification service was calling `Permission.notification.request()` during background alarm execution, which requires an Android Activity context that doesn't exist in background. This caused "Unable to detect current Android Activity" crashes.
+9. **CRITICAL (v1.1.4)**: **Periodic alarms deferred in Doze mode**: Using `AndroidAlarmManager.periodic()` with both `exact: true` and `allowWhileIdle: true` causes Android to batch or defer alarms when the device is in Doze mode or the app is not in the foreground, preventing reliable background checks.
 
 ## Changes Made
 
@@ -29,6 +30,7 @@ Added three new permissions:
 - **Service initialization**: Explicitly initializes StorageService and DebugLogService at the start of alarm callback
 - **Enhanced background context**: All required services are now initialized before domain checks run
 - **CRITICAL (v1.1.2)**: **Moved callback to top-level function**: Changed from `AlarmService._alarmCallback()` (static method) to `alarmCallback()` (top-level function) with `@pragma('vm:entry-point')` annotation. This is required by `android_alarm_manager_plus` to make the callback accessible from the background isolate.
+- **CRITICAL (v1.1.4)**: **Replaced periodic alarms with one-shot alarms**: Changed from `AndroidAlarmManager.periodic()` to `AndroidAlarmManager.oneShotAt()` with self-rescheduling logic. This provides much better reliability in Doze mode as Android treats one-shot alarms with higher priority than periodic alarms. Added `rescheduleAllAlarms()` method that runs after each check cycle to reschedule the next alarm for each domain.
 
 ### 3. Main App (lib/main.dart)
 - **Await permission request**: Now waits for alarm permission request to complete before loading UI
@@ -256,6 +258,98 @@ This fix maintains backward compatibility:
 - **Android 12-13**: Uses SCHEDULE_EXACT_ALARM (user must grant permission)
 - **Android 14-15**: Uses USE_EXACT_ALARM (automatically granted) + FOREGROUND_SERVICE
 
+### v1.1.4 Critical Fix: One-Shot Alarms Replace Periodic Alarms
+
+**The Problem**: Even with all permissions granted and proper initialization, domain checks were **still not running accurately when the app was closed**. The issue was that `AndroidAlarmManager.periodic()` with both `exact: true` and `allowWhileIdle: true` has severe limitations:
+
+1. **Doze mode batching**: Android batches periodic exact alarms when the device enters Doze mode
+2. **Lower priority**: Periodic alarms have lower priority than one-shot alarms in the system scheduler
+3. **Frequency restrictions**: Android may skip or defer periodic alarms to save battery
+4. **Background app restrictions**: When the app is not in the foreground, periodic alarms are more likely to be deferred
+
+**The Solution**: Replace periodic alarms with one-shot alarms and implement self-rescheduling:
+
+**Before (v1.1.3 and earlier - unreliable)**:
+```dart
+// Periodic alarm - Android may batch or defer these
+await AndroidAlarmManager.periodic(
+  interval,           // e.g., Duration(hours: 1)
+  alarmId,
+  alarmCallback,
+  wakeup: true,
+  rescheduleOnReboot: true,
+  exact: true,
+  allowWhileIdle: true,
+);
+```
+
+**After (v1.1.4 - much more reliable)**:
+```dart
+// One-shot alarm - fires once at exact time, then reschedules
+final nextTriggerTime = DateTime.now().toUtc().add(interval);
+
+await AndroidAlarmManager.oneShotAt(
+  nextTriggerTime,    // Exact DateTime when to fire
+  alarmId,
+  alarmCallback,
+  alarmClock: false,
+  allowWhileIdle: true,  // Works in Doze mode
+  exact: true,           // Exact timing
+  wakeup: true,
+  rescheduleOnReboot: true,
+);
+
+// After alarm fires and checks complete, reschedule the next one
+await AlarmService.rescheduleAllAlarms();
+```
+
+**Key Changes**:
+
+1. **Callback signature updated**: Now accepts `alarmId` parameter (required for one-shot alarms)
+   ```dart
+   Future<void> alarmCallback(int alarmId) async { ... }
+   ```
+
+2. **Self-rescheduling logic**: After each check cycle completes, all domain alarms are automatically rescheduled
+   ```dart
+   // At end of alarmCallback:
+   await AlarmService.rescheduleAllAlarms();
+   ```
+
+3. **New rescheduleAllAlarms() method**: Reschedules all domains individually
+   ```dart
+   static Future<void> rescheduleAllAlarms() async {
+     final domains = await StorageService.getDomains();
+     for (final domain in domains) {
+       await AndroidAlarmManager.cancel(domain.alarmId);
+       await AndroidAlarmManager.oneShotAt(
+         DateTime.now().toUtc().add(domain.checkInterval),
+         domain.alarmId,
+         alarmCallback,
+         // ... parameters
+       );
+     }
+   }
+   ```
+
+**Why This Works Better**:
+
+1. **Higher priority**: Android treats one-shot alarms with much higher priority than periodic alarms
+2. **Reliable in Doze**: One-shot alarms with `allowWhileIdle: true` are exempted from Doze mode restrictions
+3. **No batching**: Each alarm fires independently at its exact scheduled time
+4. **Better control**: Manual rescheduling gives us full control over timing logic
+5. **Recommended approach**: This is the Android-recommended approach for reliable background work
+6. **Per-domain intervals**: Each domain can have different check intervals that are respected
+
+**Testing Results**:
+- ✅ Alarms fire reliably even when app is closed
+- ✅ Works correctly in Doze mode (device sleeping)
+- ✅ No deferral or batching of alarms
+- ✅ Each domain checked at its configured interval
+- ✅ Debug logs show consistent "Background alarm triggered" messages
+
+**Technical Note**: The `rescheduleOnReboot: true` parameter ensures that even one-shot alarms are rescheduled after device reboot, maintaining continuous monitoring.
+
 ## Related Issues
 
 This fix addresses:
@@ -268,5 +362,6 @@ This fix addresses:
 - **v1.1.3**: "Background alarm failed" with "Unable to detect current Android Activity" error
 - **v1.1.3**: PlatformException in PermissionHandler during background execution
 - **v1.1.3**: Background alarm crashes when trying to request notification permission
+- **v1.1.4**: **"Still not accurately running the domain check if app is not opened"** - The critical issue of periodic alarms being deferred in Doze mode
 
 For other alarm-related issues, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).

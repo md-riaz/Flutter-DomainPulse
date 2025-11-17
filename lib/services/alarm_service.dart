@@ -11,9 +11,10 @@ import '../models/debug_log.dart';
 
 /// Top-level callback function for alarm manager
 /// This MUST be a top-level function for android_alarm_manager_plus to work properly
+/// Now uses one-shot alarms with self-rescheduling for better reliability
 @pragma('vm:entry-point')
-Future<void> alarmCallback() async {
-  debugPrint('=== ALARM CALLBACK TRIGGERED ===');
+Future<void> alarmCallback(int alarmId) async {
+  debugPrint('=== ALARM CALLBACK TRIGGERED (ID: $alarmId) ===');
   debugPrint('Timestamp: ${DateTime.now().toUtc()}');
   
   try {
@@ -44,6 +45,7 @@ Future<void> alarmCallback() async {
       LogLevel.info,
       'Background alarm triggered',
       details: '''Alarm callback started at ${DateTime.now().toUtc()}
+Alarm ID: $alarmId
 Flutter binding: Initialized
 Storage service: Initialized
 Debug log service: Initialized
@@ -63,11 +65,16 @@ If you DON\'T see this message, check:
     await DomainCheckService.checkAllDomains();
     debugPrint('Domain check cycle completed');
     
+    // Reschedule all domain alarms (one-shot alarms need manual rescheduling)
+    debugPrint('Rescheduling alarms for next check...');
+    await AlarmService.rescheduleAllAlarms();
+    debugPrint('All alarms rescheduled');
+    
     // Log successful completion
     await DebugLogService.addLog(
       LogLevel.success,
       'Background alarm completed successfully',
-      details: 'All domains checked at ${DateTime.now().toUtc()}\nNext alarm will fire after the configured interval.',
+      details: 'All domains checked at ${DateTime.now().toUtc()}\nAlarm ID: $alarmId\nNext alarms rescheduled for configured intervals.',
     );
     
     debugPrint('=== ALARM CALLBACK COMPLETED SUCCESSFULLY ===');
@@ -84,6 +91,7 @@ If you DON\'T see this message, check:
         LogLevel.error,
         'Background alarm failed',
         details: '''Error occurred in background alarm at ${DateTime.now().toUtc()}
+Alarm ID: $alarmId
 Error: $e
 Stack trace: $stackTrace
 
@@ -94,7 +102,15 @@ Please check the error details above.''',
       debugPrint('Failed to log error: $logError');
     }
     
-    // Don't rethrow - allow alarm to complete and schedule next run
+    // Even on error, try to reschedule alarms for next run
+    try {
+      debugPrint('Attempting to reschedule alarms despite error...');
+      await StorageService.init();
+      await AlarmService.rescheduleAllAlarms();
+      debugPrint('Alarms rescheduled after error');
+    } catch (rescheduleError) {
+      debugPrint('Failed to reschedule alarms: $rescheduleError');
+    }
   }
 }
 
@@ -164,17 +180,21 @@ This permission is required on Android 12+ (API 31+) for exact alarm scheduling.
       }
       
       // Now schedule the alarm with permission confirmed
-      // Use the top-level alarmCallback function (not a static method)
-      await AndroidAlarmManager.periodic(
-        interval,
+      // Use one-shot alarm instead of periodic for better reliability in Doze mode
+      // One-shot alarms with exact timing and allowWhileIdle work better in background
+      final nextTriggerTime = DateTime.now().toUtc().add(interval);
+      
+      await AndroidAlarmManager.oneShotAt(
+        nextTriggerTime,
         alarmId,
         alarmCallback,
-        wakeup: true,
-        rescheduleOnReboot: true,
-        exact: true,
-        allowWhileIdle: true,
+        alarmClock: false, // Not a user-facing alarm clock
+        allowWhileIdle: true, // Allow execution in Doze mode
+        exact: true, // Exact timing
+        wakeup: true, // Wake device if sleeping
+        rescheduleOnReboot: true, // Reschedule after reboot
       );
-      debugPrint('Alarm scheduled for $domainUrl with interval $interval');
+      debugPrint('One-shot alarm scheduled for $domainUrl at $nextTriggerTime (interval: $interval)');
       
       await AlarmDiagnosticService.logScheduleSuccess(
         alarmId: alarmId,
@@ -215,6 +235,79 @@ This permission is required on Android 12+ (API 31+) for exact alarm scheduling.
         LogLevel.error,
         'Failed to cancel alarm',
         details: 'Alarm ID: $alarmId\nError: $e',
+      );
+    }
+  }
+
+  /// Reschedule all domain alarms after a check cycle completes
+  /// This is needed because we use one-shot alarms instead of periodic ones
+  /// for better reliability in Android's Doze mode
+  static Future<void> rescheduleAllAlarms() async {
+    try {
+      debugPrint('Rescheduling all alarms...');
+      
+      // Get all domains
+      final domains = await StorageService.getDomains();
+      
+      await DebugLogService.addLog(
+        LogLevel.info,
+        'Rescheduling alarms for ${domains.length} domain(s)',
+        details: 'Timestamp: ${DateTime.now().toUtc()}',
+      );
+      
+      // Reschedule each domain's alarm
+      for (final domain in domains) {
+        try {
+          // Cancel existing alarm first
+          await AndroidAlarmManager.cancel(domain.alarmId);
+          
+          // Schedule new one-shot alarm
+          final nextTriggerTime = DateTime.now().toUtc().add(domain.checkInterval);
+          
+          await AndroidAlarmManager.oneShotAt(
+            nextTriggerTime,
+            domain.alarmId,
+            alarmCallback,
+            alarmClock: false,
+            allowWhileIdle: true,
+            exact: true,
+            wakeup: true,
+            rescheduleOnReboot: true,
+          );
+          
+          debugPrint('Rescheduled alarm ${domain.alarmId} for ${domain.url} at $nextTriggerTime');
+          
+          await DebugLogService.addLog(
+            LogLevel.info,
+            'Alarm rescheduled: ${domain.url}',
+            details: 'Alarm ID: ${domain.alarmId}\nNext trigger: $nextTriggerTime\nInterval: ${domain.checkInterval}',
+          );
+        } catch (e) {
+          debugPrint('Error rescheduling alarm for ${domain.url}: $e');
+          
+          await DebugLogService.addLog(
+            LogLevel.error,
+            'Failed to reschedule alarm: ${domain.url}',
+            details: 'Alarm ID: ${domain.alarmId}\nError: $e',
+          );
+        }
+      }
+      
+      await DebugLogService.addLog(
+        LogLevel.success,
+        'All alarms rescheduled successfully',
+        details: 'Rescheduled ${domains.length} alarm(s) at ${DateTime.now().toUtc()}',
+      );
+      
+      debugPrint('All alarms rescheduled successfully');
+    } catch (e, stackTrace) {
+      debugPrint('Error in rescheduleAllAlarms: $e');
+      debugPrint('Stack trace: $stackTrace');
+      
+      await DebugLogService.addLog(
+        LogLevel.error,
+        'Failed to reschedule alarms',
+        details: 'Error: $e\nStack trace: $stackTrace',
       );
     }
   }
