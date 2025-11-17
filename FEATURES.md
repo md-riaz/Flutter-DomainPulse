@@ -14,11 +14,18 @@
 
 #### RDAP-Based Detection
 - Uses RDAP (Registration Data Access Protocol) for accurate domain expiration data
-- Queries RDAP API at rdap.org for authoritative expiration information
+- Queries authoritative RDAP servers directly for common TLDs for better reliability
+- Falls back to rdap.org bootstrap service for other TLDs
 - Updates automatically during scheduled checks
 - All date/time handling done in UTC for consistency
 
 **Technical Details**: The app uses RDAP, the modern standard for domain registration data, which provides accurate expiration dates directly from domain registries. This is more reliable than HTTP headers or WHOIS parsing.
+
+**Supported TLDs with Direct RDAP Servers**:
+- **Generic TLDs**: .com, .net, .org, .info, .biz, .name, .mobi, .pro
+- **New gTLDs**: .xyz, .online, .site, .store, .tech, .cloud, .app, .dev, .page, .link, .click
+- **Country Code TLDs**: .io, .co, .me, .tv, .us, .cc, .ai
+- **Fallback**: All other TLDs use the rdap.org bootstrap service
 
 ### 2.1 Domain Availability Check
 
@@ -35,6 +42,7 @@
 - 404 response = Domain is available for registration
 - 200 response = Domain is currently registered
 - Status is checked alongside expiry date during background alarms
+- Queries authoritative RDAP servers for 25+ common TLDs for better accuracy
 
 ### 3. Background Monitoring
 
@@ -142,7 +150,7 @@ Required Android permissions:
 
 ## Limitations
 
-1. **RDAP Coverage**: While RDAP is widely supported, some legacy or specialized TLDs may not be available via rdap.org
+1. **RDAP Coverage**: The app has direct support for 25+ common TLDs via their authoritative RDAP servers. Other TLDs use the rdap.org bootstrap service. Some legacy or specialized TLDs may have limited RDAP support.
 2. **Android Only**: Currently supports only Android platform.
 3. **Storage**: Local storage only, no cloud sync.
 4. **Alarms**: Exact alarm behavior may vary by Android version and device manufacturer.
