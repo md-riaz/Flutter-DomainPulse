@@ -107,38 +107,93 @@ class DomainCheckService {
         }
 
         if (shouldNotify) {
+          await DebugLogService.addLog(
+            LogLevel.info,
+            'Attempting to send expiry notification',
+            details: 'Domain: ${domain.url}\nTitle: $title\nMessage: $message',
+          );
+          
           final notificationSent = await NotificationService.sendNotification(
             title,
             message,
             type: NotificationType.expiry,
           );
           
-          if (!notificationSent) {
+          if (notificationSent) {
+            await DebugLogService.addLog(
+              LogLevel.success,
+              'Expiry notification sent successfully',
+              details: 'Domain: ${domain.url}\nTitle: $title',
+            );
+          } else {
             await DebugLogService.addLog(
               LogLevel.warning,
               'Failed to send expiry notification',
               details: 'Domain: ${domain.url}\nTitle: $title\nMessage: $message\n\nPossible reasons:\n- Notification permission not granted\n- Notification service initialization failed\n\nPlease check notification permissions in Settings → Apps → DomainPulse → Permissions → Notifications',
             );
           }
+        } else {
+          // Log why notification was not sent
+          final now = DateTime.now().toUtc();
+          String reason;
+          if (domain.notifyBeforeExpiry == Duration.zero) {
+            reason = 'Domain not yet expired (expires: ${_formatDateTimeAsiaDhaka(expiryDate)})';
+          } else {
+            final notifyThreshold = now.add(domain.notifyBeforeExpiry);
+            final daysUntilThreshold = expiryDate.difference(notifyThreshold).inDays;
+            reason = 'Domain not within notification window (notify ${domain.notifyBeforeExpiry.inDays} days before expiry, currently $daysUntilThreshold days until threshold)';
+          }
+          await DebugLogService.addLog(
+            LogLevel.info,
+            'No expiry notification needed',
+            details: 'Domain: ${domain.url}\nExpiry: ${_formatDateTimeAsiaDhaka(expiryDate)}\nReason: $reason',
+          );
         }
       }
 
-      // Send notification if domain became available
+      // Send notification if domain is available
       // Only check availability notifications if monitoring availability
-      if (wasUnavailable && isNowAvailable && 
-          (domain.monitoringMode == MonitoringMode.availabilityOnly || 
-           domain.monitoringMode == MonitoringMode.both)) {
-        final notificationSent = await NotificationService.sendNotification(
-          'Domain Available: ${domain.url}',
-          'Domain ${domain.url} is now available for registration! Act fast to secure it before someone else does.',
-          type: NotificationType.availability,
-        );
-        
-        if (!notificationSent) {
+      if (domain.monitoringMode == MonitoringMode.availabilityOnly || 
+          domain.monitoringMode == MonitoringMode.both) {
+        if (isAvailable == true) {
           await DebugLogService.addLog(
-            LogLevel.warning,
-            'Failed to send availability notification',
-            details: 'Domain: ${domain.url}\n\nPossible reasons:\n- Notification permission not granted\n- Notification service initialization failed\n\nPlease check notification permissions in Settings → Apps → DomainPulse → Permissions → Notifications',
+            LogLevel.info,
+            'Domain is available - attempting notification',
+            details: 'Domain: ${domain.url}\nStatus: Available for registration',
+          );
+          
+          final notificationSent = await NotificationService.sendNotification(
+            'Domain Available: ${domain.url}',
+            'Domain ${domain.url} is available for registration! Act fast to secure it before someone else does.',
+            type: NotificationType.availability,
+          );
+          
+          if (notificationSent) {
+            await DebugLogService.addLog(
+              LogLevel.success,
+              'Availability notification sent successfully',
+              details: 'Domain: ${domain.url}',
+            );
+          } else {
+            await DebugLogService.addLog(
+              LogLevel.warning,
+              'Failed to send availability notification',
+              details: 'Domain: ${domain.url}\n\nPossible reasons:\n- Notification permission not granted\n- Notification service initialization failed\n\nPlease check notification permissions in Settings → Apps → DomainPulse → Permissions → Notifications',
+            );
+          }
+        } else {
+          // Log availability check status when no notification is needed
+          String reason;
+          if (isAvailable == false) {
+            reason = 'Domain is registered (not available)';
+          } else {
+            reason = 'Availability status unknown (check may have failed)';
+          }
+          
+          await DebugLogService.addLog(
+            LogLevel.info,
+            'No availability notification needed',
+            details: 'Domain: ${domain.url}\nReason: $reason',
           );
         }
       }
