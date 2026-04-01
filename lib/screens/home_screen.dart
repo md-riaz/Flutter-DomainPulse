@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/domain.dart';
 import '../services/storage_service.dart';
-import '../services/alarm_service.dart';
+import '../services/background_sync_service.dart';
 import '../services/rdap_service.dart';
 import '../constants.dart';
 import 'domain_form_screen.dart';
@@ -35,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _deleteDomain(Domain domain) async {
-    await AlarmService.cancelAlarm(domain.alarmId);
+    await BackgroundSyncService.domainRemoved(domain.id);
     await StorageService.deleteDomain(domain.id);
     await _loadDomains();
   }

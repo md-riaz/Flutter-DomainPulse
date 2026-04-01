@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/domain.dart';
 import '../services/storage_service.dart';
-import '../services/alarm_service.dart';
+import '../services/background_sync_service.dart';
 import '../services/notification_service.dart';
 import '../services/rdap_service.dart';
 
@@ -185,12 +185,7 @@ class _DomainFormScreenState extends State<DomainFormScreen> {
         await StorageService.updateDomain(domain);
       }
 
-      // Schedule alarm with deterministic alarm ID
-      await AlarmService.scheduleAlarm(
-        domain.alarmId,
-        _selectedInterval,
-        domain.url,
-      );
+      await BackgroundSyncService.registerOrUpdateSync();
 
       if (mounted) {
         Navigator.pop(context);

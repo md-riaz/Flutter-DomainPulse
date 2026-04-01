@@ -64,6 +64,14 @@ This app uses local Android notifications to alert you based on your configured 
 
 Notifications are delivered directly to your device without requiring any external services.
 
+## Android Permissions (WorkManager path)
+
+For the current periodic background sync architecture:
+- `SCHEDULE_EXACT_ALARM` is **not required**
+- `FOREGROUND_SERVICE` is **not required**
+
+The app relies on WorkManager-managed background windows plus notification permission.
+
 ## Troubleshooting
 
 If domain checks are not running at the scheduled intervals, see the comprehensive [TROUBLESHOOTING.md](TROUBLESHOOTING.md) guide which covers:

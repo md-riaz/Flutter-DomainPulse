@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/debug_log.dart';
 import '../services/debug_log_service.dart';
-import 'alarm_diagnostics_screen.dart';
+import 'background_diagnostics_screen.dart';
 
 class DebugLogScreen extends StatefulWidget {
   const DebugLogScreen({super.key});
@@ -109,7 +109,7 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const AlarmDiagnosticsScreen(),
+                  builder: (context) => const BackgroundDiagnosticsScreen(),
                 ),
               );
             },
