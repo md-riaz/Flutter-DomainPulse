@@ -113,7 +113,7 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
                 ),
               );
             },
-            tooltip: 'Alarm Diagnostics',
+            tooltip: 'Background Diagnostics',
           ),
           PopupMenuButton<LogLevel?>(
             icon: const Icon(Icons.filter_list),

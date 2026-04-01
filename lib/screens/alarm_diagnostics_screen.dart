@@ -33,7 +33,7 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Alarm Diagnostics'),
+        title: const Text('Background Diagnostics'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
@@ -62,7 +62,7 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
                               const Icon(Icons.info_outline, color: Colors.blue),
                               const SizedBox(width: 8),
                               Text(
-                                'Alarm System Status',
+                                 'Background Sync Status',
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                             ],
@@ -70,7 +70,7 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
                           const Divider(),
                           if (_diagnosticResults != null) ...[
                             _buildStatusRow(
-                              'Alarm Manager Initialized',
+                               'WorkManager Initialized',
                               _diagnosticResults!['alarm_manager_initialized'] == true,
                             ),
                             const SizedBox(height: 8),
@@ -103,10 +103,10 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
                             ],
                           ),
                           const Divider(),
-                          _buildIssueItem(
-                            'Android 12+ (API 31+)',
-                            'If you\'re on Android 12 or higher, the app requires SCHEDULE_EXACT_ALARM permission. Check your device Settings > Apps > DomainPulse > Permissions.',
-                          ),
+                           _buildIssueItem(
+                             'WorkManager scheduling',
+                             'DomainPulse uses WorkManager for background checks and does not require exact alarm permission.',
+                           ),
                           _buildIssueItem(
                             'Battery Optimization',
                             'Some devices may kill background alarms to save battery. Go to Settings > Battery > Battery Optimization and set DomainPulse to "Not optimized" or "Unrestricted".',
@@ -117,7 +117,7 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
                           ),
                           _buildIssueItem(
                             'Short Intervals (<15min)',
-                            'Android may defer alarms shorter than 15 minutes to save battery. Use longer intervals or check debug logs to see actual trigger times.',
+                             'WorkManager runs based on system-managed windows. Execution can be deferred to optimize battery life.',
                           ),
                         ],
                       ),
@@ -147,7 +147,7 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
                           _buildStep('2', 'Check debug logs (bug report icon) immediately after adding'),
                           _buildStep('3', 'Wait for the interval to pass and check logs again'),
                           _buildStep('4', 'If no alarm fired, check battery optimization settings'),
-                          _buildStep('5', 'Try increasing the interval to 1 hour and test again'),
+                           _buildStep('5', 'Keep app and battery settings unrestricted if checks seem delayed'),
                         ],
                       ),
                     ),

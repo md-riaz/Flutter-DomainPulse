@@ -1,21 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'screens/home_screen.dart';
 import 'services/storage_service.dart';
-import 'services/alarm_service.dart';
 import 'services/notification_service.dart';
-import 'services/alarm_permission_service.dart';
+import 'services/workmanager_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AndroidAlarmManager.initialize();
   await StorageService.init();
   await NotificationService.initialize();
-  
-  // Request alarm permission on app startup (Android 12+ requirement)
-  // This is critical for Android 12+, 14+, and 15+ where exact alarms require permission
-  // We await this to ensure permission is handled before the app UI loads
-  await AlarmPermissionService.requestAlarmPermission();
+  await WorkmanagerService.registerBackgroundSync();
   
   runApp(const DomainPulseApp());
 }

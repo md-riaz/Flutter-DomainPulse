@@ -30,6 +30,35 @@ class DomainCheckService {
     );
   }
 
+  static Future<void> checkDueDomains() async {
+    debugPrint('Checking due domains...');
+    await StorageService.init();
+
+    final domains = await StorageService.getDomains();
+    final now = DateTime.now().toUtc();
+    final dueDomains = domains.where((domain) {
+      final lastChecked = domain.lastChecked;
+      if (lastChecked == null) return true;
+      return now.difference(lastChecked) >= domain.checkInterval;
+    }).toList();
+
+    await DebugLogService.addLog(
+      LogLevel.info,
+      'Starting due domain check cycle',
+      details: 'Checking ${dueDomains.length} due domain(s) out of ${domains.length}',
+    );
+
+    for (final domain in dueDomains) {
+      await _checkDomain(domain);
+    }
+
+    await DebugLogService.addLog(
+      LogLevel.success,
+      'Due domain check cycle completed',
+      details: 'Checked ${dueDomains.length} due domain(s) successfully',
+    );
+  }
+
   static Future<void> _checkDomain(Domain domain) async {
     try {
       debugPrint('Checking domain: ${domain.url} (Mode: ${domain.monitoringMode.name})');

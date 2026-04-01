@@ -1,11 +1,11 @@
 # DomainPulse
 
-A Flutter Android app for tracking domain expiry dates with alarm-based background checks and local notifications.
+A Flutter Android app for tracking domain expiry dates with WorkManager-based background checks and local notifications.
 
 ## Features
 
 - **Domain Management**: Add, edit, and delete domains to monitor
-- **Background Monitoring**: Automatic alarm-based checks at configurable intervals (15m, 1h, 6h, 1d, or custom)
+- **Background Monitoring**: Automatic WorkManager-based checks in Android-managed background windows
 - **Flexible Notifications**: Configurable alert timing per domain (30m, 1h, 6h, 12h, 1d, 7d, or 30d before expiry)
 - **Local Notifications**: Native Android notifications when domains are approaching expiry or have expired
 - **Expiry Tracking**: Uses RDAP (Registration Data Access Protocol) to fetch accurate domain expiration dates
@@ -17,7 +17,7 @@ A Flutter Android app for tracking domain expiry dates with alarm-based backgrou
 This app uses minimal dependencies:
 - `flutter` - Flutter SDK
 - `http` (^1.1.0) - For RDAP domain checking
-- `android_alarm_manager_plus` (^4.0.0) - For background alarm scheduling
+- `workmanager` (^0.9.0+3) - For persistent background scheduling
 - `path_provider` (^2.1.1) - For proper Android storage access
 - `url_launcher` (^6.2.0) - For opening URLs
 - `flutter_local_notifications` (^17.0.0) - For local notifications
@@ -48,7 +48,7 @@ mv build/app/outputs/flutter-apk/app-release.apk DomainPulse-v1.0.0.apk
 ## Usage
 
 1. **Add Domains**: Tap the + button to add domains to monitor
-2. **Set Check Intervals**: Choose from 15m, 1h, 6h, 1d, or set a custom interval
+2. **Set Check Intervals**: Choose from 15m, 1h, 6h, 1d, or set a custom interval (due checks are evaluated in WorkManager runs)
 3. **Configure Alert Timing**: Set when to be notified (30m to 30 days before expiry)
 4. **Monitor Availability**: Track domain registration status - see if domains are available for purchase
 5. **Receive Alerts**: Get local notifications directly on your device when domains expire or become available
