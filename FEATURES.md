@@ -86,7 +86,7 @@ Alert messages include:
 ### Minimal Dependencies
 - `flutter` - Flutter SDK
 - `http` (^1.1.0) - HTTP requests for RDAP domain checking
-- `android_alarm_manager_plus` (^4.0.0) - Background alarm scheduling
+- `workmanager` (^0.9.0+3) - Background task scheduling
 - `path_provider` (^2.1.1) - Proper Android storage access
 - `url_launcher` (^6.2.0) - Opening URLs
 - `flutter_local_notifications` (^17.0.0) - Local notification delivery
@@ -102,15 +102,12 @@ Alert messages include:
 ### Permissions
 Required Android permissions:
 - `INTERNET` - Network access for domain checks
-- `RECEIVE_BOOT_COMPLETED` - Reschedule alarms after reboot
+- `RECEIVE_BOOT_COMPLETED` - Restart WorkManager jobs after reboot
 - `WAKE_LOCK` - Wake device for scheduled checks
-- `SCHEDULE_EXACT_ALARM` - Precise alarm timing (Android 12+)
-- `USE_EXACT_ALARM` - Alternative exact alarm permission (Android 14+, no user approval required)
 - `POST_NOTIFICATIONS` - Show local notifications (Android 13+)
 - `VIBRATE` - Notification vibration
-- `FOREGROUND_SERVICE` - Background operations (Android 14+)
 
-**Note**: The app now explicitly checks alarm permissions before scheduling and provides detailed error messages in debug logs if permissions are missing. This ensures compatibility with Android 12, 13, 14, and 15.
+**Note**: DomainPulse uses WorkManager for periodic background checks and does not require exact-alarm permissions.
 
 ## User Workflow
 
@@ -208,28 +205,22 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed guide covering:
 
 ## Critical Fixes
 
-### Android 15 Notification and Alarm Fix
-- **Issue**: On Android 15, alarms and notifications were not triggering even after granting permissions, and debug logs remained empty
+### WorkManager Migration for Background Checks
+- **Issue**: Exact-alarm-based background checks required self-rescheduling and fragile permission handling paths.
 - **Root Causes**:
-  - Missing `USE_EXACT_ALARM` permission (Android 14+ alternative that doesn't require user approval)
-  - Missing `FOREGROUND_SERVICE` permission required for Android 14+ background operations
-  - No explicit verification that alarm permission was granted before scheduling alarms
-  - Insufficient debug logging in alarm callback to diagnose execution issues
+  - One-shot alarm chaining tied future execution to successful callback completion
+  - Exact alarm permission and Android background constraints caused reliability issues
 - **Fix**:
-  - Added `USE_EXACT_ALARM` permission to AndroidManifest.xml
-  - Added `FOREGROUND_SERVICE` permission to AndroidManifest.xml
-  - Updated alarm service to check and verify permissions before scheduling
-  - Added explicit permission request and verification in main.dart
-  - Enhanced alarm callback with comprehensive debug logging
-  - Updated diagnostics to check both alarm and notification permissions
-  - Provided detailed error messages with actionable steps when permissions are missing
-- **Result**: Alarms now work reliably on Android 15 with clear feedback about permission status
+  - Replaced `android_alarm_manager_plus` with `workmanager`
+  - Registered one WorkManager periodic sync task and moved execution to background callback isolate
+  - Added due-domain filtering so domain-level intervals are respected during periodic runs
+  - Removed exact alarm permissions from the manifest and startup flow
+- **Result**: Persistent background checks now follow a WorkManager-first architecture.
 
 ### RebootBroadcastReceiver Fix
-- **Issue**: RebootBroadcastReceiver was disabled in AndroidManifest.xml
-- **Impact**: Alarms would not be rescheduled after device reboot
-- **Fix**: Enabled the receiver to properly handle BOOT_COMPLETED events
-- **Result**: Alarms now reschedule automatically after device restart
+- **Issue**: Background checks needed reliable restart behavior after device reboot
+- **Fix**: WorkManager-managed periodic job registration is used for restart-safe background scheduling
+- **Result**: Background checks continue through Android system-managed scheduling
 
 ## Future Enhancements
 

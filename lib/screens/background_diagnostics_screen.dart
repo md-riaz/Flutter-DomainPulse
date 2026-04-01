@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import '../services/alarm_diagnostic_service.dart';
+import '../services/background_diagnostic_service.dart';
 import '../services/debug_log_service.dart';
 import '../models/debug_log.dart';
 
-class AlarmDiagnosticsScreen extends StatefulWidget {
-  const AlarmDiagnosticsScreen({super.key});
+class BackgroundDiagnosticsScreen extends StatefulWidget {
+  const BackgroundDiagnosticsScreen({super.key});
 
   @override
-  State<AlarmDiagnosticsScreen> createState() => _AlarmDiagnosticsScreenState();
+  State<BackgroundDiagnosticsScreen> createState() =>
+      _BackgroundDiagnosticsScreenState();
 }
 
-class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
+class _BackgroundDiagnosticsScreenState extends State<BackgroundDiagnosticsScreen> {
   Map<String, dynamic>? _diagnosticResults;
   bool _isRunning = false;
 
@@ -22,7 +23,7 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
 
   Future<void> _runDiagnostics() async {
     setState(() => _isRunning = true);
-    final results = await AlarmDiagnosticService.runDiagnostics();
+    final results = await BackgroundDiagnosticService.runDiagnostics();
     setState(() {
       _diagnosticResults = results;
       _isRunning = false;
@@ -33,7 +34,7 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Alarm Diagnostics'),
+        title: const Text('Background Diagnostics'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
@@ -50,7 +51,6 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Diagnostic info card
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -62,7 +62,7 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
                               const Icon(Icons.info_outline, color: Colors.blue),
                               const SizedBox(width: 8),
                               Text(
-                                'Alarm System Status',
+                                'Background Sync Status',
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                             ],
@@ -70,8 +70,14 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
                           const Divider(),
                           if (_diagnosticResults != null) ...[
                             _buildStatusRow(
-                              'Alarm Manager Initialized',
-                              _diagnosticResults!['alarm_manager_initialized'] == true,
+                              'WorkManager Initialized',
+                              _diagnosticResults!['workmanager_initialized'] ==
+                                  true,
+                            ),
+                            _buildStatusRow(
+                              'Exact Alarm Not Required',
+                              _diagnosticResults!['exact_alarm_not_required'] ==
+                                  true,
                             ),
                             const SizedBox(height: 8),
                             Text(
@@ -84,8 +90,6 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
-                  // Common issues card
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -104,57 +108,22 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
                           ),
                           const Divider(),
                           _buildIssueItem(
-                            'Android 12+ (API 31+)',
-                            'If you\'re on Android 12 or higher, the app requires SCHEDULE_EXACT_ALARM permission. Check your device Settings > Apps > DomainPulse > Permissions.',
+                            'WorkManager scheduling',
+                            'DomainPulse uses WorkManager for background checks and does not require SCHEDULE_EXACT_ALARM.',
+                          ),
+                          _buildIssueItem(
+                            'Foreground service permission',
+                            'FOREGROUND_SERVICE is not required for this periodic WorkManager background sync path.',
                           ),
                           _buildIssueItem(
                             'Battery Optimization',
-                            'Some devices may kill background alarms to save battery. Go to Settings > Battery > Battery Optimization and set DomainPulse to "Not optimized" or "Unrestricted".',
-                          ),
-                          _buildIssueItem(
-                            'Device Manufacturer Restrictions',
-                            'Some manufacturers (Xiaomi, Huawei, Samsung, OnePlus) have aggressive battery management. You may need to:\n• Enable "Autostart" for this app\n• Disable "Battery optimization"\n• Add app to "Protected apps" list',
-                          ),
-                          _buildIssueItem(
-                            'Short Intervals (<15min)',
-                            'Android may defer alarms shorter than 15 minutes to save battery. Use longer intervals or check debug logs to see actual trigger times.',
+                            'Some devices may kill background tasks to save battery. Set DomainPulse to "Not optimized" or "Unrestricted".',
                           ),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
-                  // Troubleshooting steps card
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.build, color: Colors.green),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Troubleshooting Steps',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                            ],
-                          ),
-                          const Divider(),
-                          _buildStep('1', 'Add a domain with a short interval (e.g., 15 minutes)'),
-                          _buildStep('2', 'Check debug logs (bug report icon) immediately after adding'),
-                          _buildStep('3', 'Wait for the interval to pass and check logs again'),
-                          _buildStep('4', 'If no alarm fired, check battery optimization settings'),
-                          _buildStep('5', 'Try increasing the interval to 1 hour and test again'),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Quick actions
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -171,26 +140,21 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
                               await DebugLogService.addLog(
                                 LogLevel.info,
                                 'Manual diagnostic check triggered by user',
-                                details: 'User opened diagnostics screen and ran manual check',
+                                details:
+                                    'User opened background diagnostics screen and ran manual check',
                               );
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Diagnostic entry added to debug logs'),
+                                    content: Text(
+                                      'Diagnostic entry added to debug logs',
+                                    ),
                                   ),
                                 );
                               }
                             },
                             icon: const Icon(Icons.note_add),
                             label: const Text('Add Test Log Entry'),
-                          ),
-                          const SizedBox(height: 8),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            icon: const Icon(Icons.bug_report),
-                            label: const Text('View Debug Logs'),
                           ),
                         ],
                       ),
@@ -248,36 +212,6 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
           Text(
             description,
             style: const TextStyle(fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStep(String number, String description) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 12,
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            child: Text(
-              number,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 2.0),
-              child: Text(description),
-            ),
           ),
         ],
       ),

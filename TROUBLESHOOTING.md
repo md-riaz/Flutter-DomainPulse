@@ -2,19 +2,15 @@
 
 ## Recent Fixes
 
-### v1.1.4 - One-Shot Alarms for Reliable Background Checks
+### WorkManager-First Background Checks
 
-**If domain checks are still not running accurately when the app is closed**, this has been fixed in v1.1.4. The root cause was that periodic alarms with exact timing are heavily restricted by Android's Doze mode and are often batched or deferred when the app is in the background.
+DomainPulse now uses Android WorkManager for background execution. This removes exact-alarm dependency and self-rescheduling logic from the app flow.
 
-**What was fixed:**
-- ✅ Replaced periodic alarms with one-shot alarms (much more reliable in Doze mode)
-- ✅ Implemented self-rescheduling after each check cycle
-- ✅ One-shot alarms have higher priority in Android's scheduler
-- ✅ No more batching or deferral of alarms when app is closed
-- ✅ Each domain check fires at its exact scheduled time
-
-**Why this matters:**
-Android treats one-shot alarms with `exact: true` and `allowWhileIdle: true` with much higher priority than periodic alarms. This is the recommended approach for reliable background work when the app is not running.
+**What changed:**
+- ✅ Migrated from alarm-based scheduling to WorkManager periodic background jobs
+- ✅ Removed exact-alarm permission requirement from app flow
+- ✅ Background job loads domains and checks only domains that are due
+- ✅ Background checks continue after reboot via WorkManager system integration
 
 ### v1.1.3 - Background Alarm Permission Error Fix
 
@@ -57,38 +53,12 @@ If you don't see "Background alarm triggered" entries:
 
 ### 2. Android Version-Specific Issues
 
-#### Android 15 (API 35)
-Android 15 has the strictest requirements for background work and exact alarms:
+#### Android 12+ through Android 15
+WorkManager does not require exact-alarm permission for periodic background checks.
 
-1. **Alarm Permission**: Open **Settings** → **Apps** → **DomainPulse** → **Special app access** → **Alarms & reminders** and enable it
-2. **Notification Permission**: Go to **Settings** → **Apps** → **DomainPulse** → **Permissions** → **Notifications** and enable it
-3. **Battery Optimization**: Go to **Settings** → **Battery** → **Battery optimization** → Find DomainPulse → Select **Don't optimize**
-4. **Background Restrictions**: Go to **Settings** → **Apps** → **DomainPulse** → **Battery** → Select **No restrictions** or **Unrestricted**
-
-**Critical for Android 15**: The app will now verify alarm permissions before scheduling. If you see permission warnings in debug logs, follow the instructions provided. Android 15 also requires USE_ALARM_ATTRIBUTES permission, which is automatically granted through the manifest.
-
-#### Android 14 (API 34)
-Android 14 introduced USE_EXACT_ALARM permission:
-
-1. Open **Settings** on your device
-2. Go to **Apps** → **DomainPulse**
-3. Tap **Permissions** or **Special app access**
-4. Look for **Alarms & reminders** or **Schedule exact alarms**
-5. Enable this permission
-6. Disable battery optimization (see Android 15 instructions above)
-
-**Why?** Android 14+ uses USE_EXACT_ALARM as an alternative to SCHEDULE_EXACT_ALARM. The app now supports both. Android 15+ also requires USE_ALARM_ATTRIBUTES for alarm scheduling attributes.
-
-#### Android 12-13 (API 31-33)
-Android 12 and 13 require explicit permission for exact alarms:
-
-1. Open **Settings** on your device
-2. Go to **Apps** → **DomainPulse**
-3. Tap **Permissions** or **Special app access**
-4. Look for **Alarms & reminders** or **Schedule exact alarms**
-5. Enable this permission
-
-**Why?** Android 12+ restricts exact alarm scheduling for security/battery reasons. Apps must request this permission explicitly.
+1. **Notification Permission**: Go to **Settings** → **Apps** → **DomainPulse** → **Permissions** → **Notifications** and enable it
+2. **Battery Optimization**: Go to **Settings** → **Battery** → **Battery optimization** → Find DomainPulse → Select **Don't optimize**
+3. **Background Restrictions**: Go to **Settings** → **Apps** → **DomainPulse** → **Battery** → Select **No restrictions** or **Unrestricted**
 
 #### Android 13+ (API 33+)
 Additional notification permission is required:
