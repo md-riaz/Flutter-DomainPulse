@@ -34,6 +34,7 @@ subprojects {
             force 'androidx.activity:activity:1.7.2'
             force 'androidx.activity:activity-ktx:1.7.2'
             force 'androidx.annotation:annotation:1.6.0'
+            force 'androidx.browser:browser:1.8.0'
         }
     }
 }
