@@ -107,10 +107,10 @@ class _AlarmDiagnosticsScreenState extends State<AlarmDiagnosticsScreen> {
                              'WorkManager scheduling',
                              'DomainPulse uses WorkManager for background checks and does not require exact alarm permission.',
                            ),
-                          _buildIssueItem(
-                            'Battery Optimization',
-                            'Some devices may kill background alarms to save battery. Go to Settings > Battery > Battery Optimization and set DomainPulse to "Not optimized" or "Unrestricted".',
-                          ),
+                           _buildIssueItem(
+                             'Battery Optimization',
+                             'Some devices may kill background tasks to save battery. Go to Settings > Battery > Battery Optimization and set DomainPulse to "Not optimized" or "Unrestricted".',
+                           ),
                           _buildIssueItem(
                             'Device Manufacturer Restrictions',
                             'Some manufacturers (Xiaomi, Huawei, Samsung, OnePlus) have aggressive battery management. You may need to:\n• Enable "Autostart" for this app\n• Disable "Battery optimization"\n• Add app to "Protected apps" list',

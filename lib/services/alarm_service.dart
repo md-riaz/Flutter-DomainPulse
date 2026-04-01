@@ -9,6 +9,8 @@ class AlarmService {
     Duration interval,
     String domainUrl,
   ) async {
+    // Legacy per-domain scheduling arguments are preserved for call-site compatibility.
+    // WorkManager uses one shared periodic task and due-domain filtering.
     debugPrint(
       'Registering WorkManager sync (requested by $domainUrl, alarmId: $alarmId, interval: $interval)',
     );

@@ -5,6 +5,7 @@ import '../models/debug_log.dart';
 /// Reports WorkManager-based scheduling status for existing diagnostics UI.
 class AlarmDiagnosticService {
   static Future<Map<String, dynamic>> runDiagnostics() async {
+    // Legacy keys retained to avoid broader UI refactors in this migration.
     final results = <String, dynamic>{
       'alarm_manager_initialized': true,
       'alarm_permission_granted': true,

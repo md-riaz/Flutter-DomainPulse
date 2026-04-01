@@ -65,6 +65,8 @@ class WorkmanagerService {
 
   static Future<void> registerBackgroundSync() async {
     await initialize();
+    // WorkManager periodic work has a practical floor on Android.
+    // Per-domain intervals are enforced by DomainCheckService.checkDueDomains().
     await Workmanager().registerPeriodicTask(
       _periodicTaskUniqueName,
       kDomainSyncTaskName,
